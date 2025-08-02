@@ -1,43 +1,34 @@
 import React, { useEffect, useState } from 'react';
-import { api } from '../lib/api';
-import { mockHubspotIssues } from '../mock/mockHubspot';
+import { useHubSpot } from '../hooks/useHubSpot';
+import { useTenant } from '../context/TenantContext';
+import { TransformedHubSpotTicket } from '../lib/api';
 
-interface Ticket {
-  id: number;
-  title: string;
-  description?: string;
-  created_at: string;
-  severity: number;
-}
-
+// Use HubSpotTicket type from API instead of local Ticket interface
 const HubSpotTickets: React.FC = () => {
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { tenantId } = useTenant();
+  const integrationId = localStorage.getItem('hubspot_integration_id') || '550e8400-e29b-41d4-a716-446655440001';
+  const { listTickets, syncTickets, loading, error } = useHubSpot(tenantId, integrationId);
+  const [tickets, setTickets] = useState<TransformedHubSpotTicket[]>([]);
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
 
   const fetchTickets = async () => {
     try {
-      const res = await api.get('/api/issues', {
-        params: { source: 'hubspot', limit: 5 },
-      });
-      setTickets(res.data.data || []);
+      console.log('Fetching tickets with integration ID:', integrationId);
+      const ticketData = await listTickets(5);
+      console.log('Received ticket data:', ticketData);
+      setTickets(ticketData);
     } catch (err) {
       console.error('Error fetching tickets:', err);
-      // fallback to mock data
-      setTickets(mockHubspotIssues);
     }
   };
 
-  const syncTickets = async () => {
+  const handleSync = async () => {
     try {
-      setLoading(true);
-      await api.post('/api/hubspot/sync');
+      await syncTickets('full');
       await fetchTickets();
       setLastSynced(new Date());
     } catch (err) {
       console.error('Error syncing tickets:', err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -48,9 +39,35 @@ const HubSpotTickets: React.FC = () => {
   return (
     <div className="container py-4">
       <h1 className="mb-3">HubSpot Tickets</h1>
-      <button className="btn btn-primary mb-4" onClick={syncTickets} disabled={loading}>
+      <div className="mb-3 p-2 bg-light rounded">
+        <small className="text-muted">
+          Debug: Integration ID: {integrationId}
+          <br />
+          Tickets count: {tickets.length}
+          <br />
+          Error: {error || 'none'}
+          <br />
+          <button 
+            className="btn btn-sm btn-outline-secondary" 
+            onClick={() => {
+              localStorage.setItem('hubspot_integration_id', '382db926-cc25-40a4-8c60-81459b15826a');
+              window.location.reload();
+            }}
+          >
+            Fix Integration ID
+          </button>
+          <button 
+            className="btn btn-sm btn-outline-primary ml-2" 
+            onClick={fetchTickets}
+          >
+            Debug Fetch
+          </button>
+        </small>
+      </div>
+      <button className="btn btn-primary mb-4" onClick={handleSync} disabled={loading}>
         {loading ? 'Syncing...' : 'Sync HubSpot Tickets'}
       </button>
+      {error && <div className="alert alert-danger mb-3">{error}</div>}
       {lastSynced && (
         <p className="text-sm text-secondary mb-3">Last synced: {lastSynced.toLocaleTimeString()}</p>
       )}
@@ -65,15 +82,14 @@ const HubSpotTickets: React.FC = () => {
           </tr>
         </thead>
         <tbody>
-          {tickets.map((t) => (
+          {tickets && tickets.length > 0 ? tickets.map((t) => (
             <tr key={t.id}>
               <td>{t.title}</td>
               <td>{t.description?.substring(0, 80) || '-'}</td>
               <td>{t.severity >=4 ? 'High' : t.severity >=3 ? 'Medium' : 'Low'}</td>
               <td>{new Date(t.created_at).toLocaleDateString()}</td>
             </tr>
-          ))}
-          {tickets.length === 0 && (
+          )) : (
             <tr>
               <td colSpan={4} className="text-center text-secondary">
                 No HubSpot tickets found.

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { api } from '../lib/api';
+import { apiClient } from '../lib/api';
+import { useTenant } from '../context/TenantContext';
+import { HubSpotStatus } from '../lib/api';
 
 interface IntegrationStatusProps {
   onRunIntegrationTest: () => void;
@@ -7,21 +9,23 @@ interface IntegrationStatusProps {
 }
 
 const IntegrationStatus: React.FC<IntegrationStatusProps> = ({ onRunIntegrationTest, loading }) => {
-  const [hubspotConnected, setHubspotConnected] = useState<boolean>(false);
+  const { tenantId } = useTenant();
+  const integrationId = localStorage.getItem('hubspot_integration_id') || '550e8400-e29b-41d4-a716-446655440001';
+  const [hubspotStatus, setHubspotStatus] = useState<HubSpotStatus>({ connected: false });
 
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const res = await api.get('/api/hubspot/status');
-        setHubspotConnected(res.data.connected);
+        const status = await apiClient.getHubSpotStatus(tenantId, integrationId);
+        setHubspotStatus(status);
       } catch (err) {
         console.error('Error fetching HubSpot status:', err);
         // Assume connected in development if backend down
-        setHubspotConnected(true);
+        setHubspotStatus({ connected: true });
       }
     };
     fetchStatus();
-  }, []);
+  }, [tenantId, integrationId]);
 
   const integrations = [
     {
@@ -33,7 +37,7 @@ const IntegrationStatus: React.FC<IntegrationStatusProps> = ({ onRunIntegrationT
     {
       name: 'HubSpot',
       icon: '📊',
-      status: hubspotConnected ? 'active' : 'inactive',
+      status: hubspotStatus.connected ? 'active' : 'inactive',
       description: 'Support tickets & feedback'
     },
     {
