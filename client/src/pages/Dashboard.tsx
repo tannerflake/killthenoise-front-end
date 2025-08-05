@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../lib/api';
-import { mockHubspotIssues } from '../mock/mockHubspot';
+import { useTopIssues } from '../hooks/useIssues';
 import IssueTable from '../components/IssueTable';
 import StatsCards from '../components/StatsCards';
 
@@ -30,10 +29,8 @@ interface ApiResponse {
 }
 
 const Dashboard: React.FC = () => {
-  const [issues, setIssues] = useState<Issue[]>([]);
+  const { issues, loading, error } = useTopIssues(10);
   const [filteredIssues, setFilteredIssues] = useState<Issue[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [stats, setStats] = useState({
     totalIssues: 0,
@@ -43,10 +40,6 @@ const Dashboard: React.FC = () => {
   });
 
   useEffect(() => {
-    fetchTopIssues();
-  }, []);
-
-  useEffect(() => {
     if (typeFilter === 'all') {
       setFilteredIssues(issues);
     } else {
@@ -54,50 +47,24 @@ const Dashboard: React.FC = () => {
     }
   }, [issues, typeFilter]);
 
-  const fetchTopIssues = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get<ApiResponse>('/api/issues/top?limit=10');
-      
-      if (response.data.success) {
-        setIssues(response.data.data);
-        
-        // Calculate stats
-        const totalIssues = response.data.data.length;
-        const criticalIssues = response.data.data.filter(issue => issue.severity >= 4).length;
-        const openIssues = response.data.data.filter(issue => issue.status === 'open').length;
-        const avgSeverity = totalIssues > 0 
-          ? response.data.data.reduce((sum, issue) => sum + issue.severity, 0) / totalIssues 
-          : 0;
-
-        setStats({
-          totalIssues,
-          criticalIssues,
-          openIssues,
-          avgSeverity: Math.round(avgSeverity * 10) / 10
-        });
-      }
-    } catch (err) {
-      console.error('Error fetching issues:', err);
-      // Fallback to mock data when backend is unavailable
-      setIssues(mockHubspotIssues);
-      const totalIssues = mockHubspotIssues.length;
-      const criticalIssues = mockHubspotIssues.filter(i => i.severity >= 4).length;
-      const openIssues = mockHubspotIssues.filter(i => i.status === 'open').length;
-      const avgSeverity = totalIssues > 0 ? mockHubspotIssues.reduce((s,i)=>s+i.severity,0)/totalIssues : 0;
+  // Calculate stats from issues
+  useEffect(() => {
+    if (issues.length > 0) {
+      const totalIssues = issues.length;
+      const criticalIssues = issues.filter(issue => issue.severity >= 4).length;
+      const openIssues = issues.filter(issue => issue.status === 'open').length;
+      const avgSeverity = totalIssues > 0 
+        ? issues.reduce((sum, issue) => sum + issue.severity, 0) / totalIssues 
+        : 0;
 
       setStats({
         totalIssues,
         criticalIssues,
         openIssues,
-        avgSeverity: Math.round(avgSeverity * 10) / 10,
+        avgSeverity: Math.round(avgSeverity * 10) / 10
       });
-      setError(null);
-    } finally {
-      setLoading(false);
     }
-  };
-
+  }, [issues]);
 
 
   if (error) {
@@ -108,7 +75,7 @@ const Dashboard: React.FC = () => {
             <div className="text-center">
               <h3>Error</h3>
               <p className="text-danger">{error}</p>
-              <button className="btn btn-primary" onClick={fetchTopIssues}>
+              <button className="btn btn-primary" onClick={() => {}}>
                 Try Again
               </button>
             </div>

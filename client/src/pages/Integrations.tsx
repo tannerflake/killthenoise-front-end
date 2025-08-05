@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { api } from '../lib/api';
+import { apiClient } from '../lib/api';
+import HubSpotConnectCard from '../components/HubSpotConnectCard';
 import IntegrationStatus from '../components/IntegrationStatus';
 
 const Integrations: React.FC = () => {
@@ -10,7 +11,7 @@ const Integrations: React.FC = () => {
                 try {
                   setLoading(true);
                   setMessage(null);
-                  await api.post('/api/integrations/test');
+                  await apiClient.testIntegration();
                   setMessage('Integration test completed successfully!');
                 } catch (err) {
                   console.error('Error running integration test:', err);
@@ -24,7 +25,7 @@ const Integrations: React.FC = () => {
                 try {
                   setLoading(true);
                   setMessage(null);
-                  await api.post('/api/jira/match-all');
+                  await apiClient.matchJiraIssues();
                   setMessage('Jira matching completed successfully!');
                 } catch (err) {
                   console.error('Error running Jira matching:', err);
@@ -73,22 +74,7 @@ const Integrations: React.FC = () => {
                     </div>
 
                     {/* HubSpot Integration */}
-                    <div className="card mt-4">
-                      <div className="card-header">
-                        <h3>HubSpot Integration</h3>
-                      </div>
-                      <div className="card-body">
-                        <p className="text-secondary mb-3">
-                          Connect your HubSpot account to import support tickets and customer feedback.
-                        </p>
-                        <a
-                          className="btn btn-orange"
-                          href="https://app-na2.hubspot.com/oauth/authorize?client_id=c4f6d977-f797-4c43-9e9d-9bc867ea01ac&redirect_uri=http://localhost:5001/api/hubspot/callback&scope=tickets%20oauth"
-                        >
-                          Connect to HubSpot
-                        </a>
-                      </div>
-                    </div>
+                    <HubSpotConnectCard />
 
         {/* Status Message */}
         {message && (
