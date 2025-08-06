@@ -14,6 +14,50 @@ export interface HubSpotStatus {
   integration_id?: string;
 }
 
+export interface JiraStatus {
+  connected: boolean;
+  user?: {
+    account_id: string;
+    display_name: string;
+    email: string;
+  };
+  base_url?: string;
+  error?: string;
+}
+
+export interface JiraIntegration {
+  id: string;
+  tenant_id: string;
+  is_active: boolean;
+  last_synced_at?: string;
+  last_sync_status?: string;
+  sync_error_message?: string;
+  created_at: string;
+  updated_at: string;
+  connection_status: JiraStatus;
+}
+
+export interface JiraIssue {
+  id: string;
+  summary: string;
+  status: string;
+  priority: string;
+  assignee?: string;
+  issue_type: string;
+  project: string;
+  created: string;
+  updated: string;
+  url: string;
+  description?: string;
+  reporter?: string;
+}
+
+export interface JiraProject {
+  key: string;
+  name: string;
+  id: string;
+}
+
 export interface HubSpotTicket {
   id: string;
   properties: {
@@ -138,6 +182,60 @@ export const apiClient = {
   // Jira API
   async matchJiraIssues(): Promise<ApiResponse> {
     const response = await api.post<ApiResponse>('/api/jira/match-all');
+    return response.data;
+  },
+
+  async listJiraIntegrations(tenantId: string): Promise<ApiResponse<JiraIntegration[]>> {
+    const response = await api.get<ApiResponse<JiraIntegration[]>>(`/api/jira/integrations/${tenantId}`);
+    return response.data;
+  },
+
+  async createJiraIntegration(tenantId: string, credentials: { access_token: string; base_url: string; email: string }): Promise<{success: boolean, integration_id?: string, tenant_id?: string, message?: string, detail?: any}> {
+    const response = await api.post<{success: boolean, integration_id?: string, tenant_id?: string, message?: string, detail?: any}>(`/api/jira/integrations/${tenantId}`, credentials);
+    return response.data;
+  },
+
+  async getJiraStatus(tenantId: string, integrationId: string): Promise<JiraStatus> {
+    const response = await api.get<JiraStatus>(`/api/jira/status/${tenantId}/${integrationId}`);
+    return response.data;
+  },
+
+  async listJiraIssues(tenantId: string, integrationId: string, limit?: number, jql?: string): Promise<{success: boolean, issues: JiraIssue[], total: number, max_results: number}> {
+    const params = new URLSearchParams();
+    if (limit) params.append('limit', limit.toString());
+    if (jql) params.append('jql', jql);
+    
+    const response = await api.get<{success: boolean, issues: JiraIssue[], total: number, max_results: number}>(`/api/jira/issues/${tenantId}/${integrationId}?${params}`);
+    return response.data;
+  },
+
+  async getJiraIssue(tenantId: string, integrationId: string, issueKey: string): Promise<{success: boolean, issue: JiraIssue}> {
+    const response = await api.get<{success: boolean, issue: JiraIssue}>(`/api/jira/issues/${tenantId}/${integrationId}/${issueKey}`);
+    return response.data;
+  },
+
+  async createJiraIssue(tenantId: string, integrationId: string, projectKey: string, summary: string, description: string, issueType: string): Promise<{success: boolean, issue_key: string, issue_id: string, url: string}> {
+    const response = await api.post<{success: boolean, issue_key: string, issue_id: string, url: string}>(`/api/jira/issues/${tenantId}/${integrationId}`, {
+      project_key: projectKey,
+      summary: summary,
+      description: description,
+      issue_type: issueType
+    });
+    return response.data;
+  },
+
+  async updateJiraIssue(tenantId: string, integrationId: string, issueKey: string, updates: any): Promise<{success: boolean}> {
+    const response = await api.put<{success: boolean}>(`/api/jira/issues/${tenantId}/${integrationId}/${issueKey}`, updates);
+    return response.data;
+  },
+
+  async listJiraProjects(tenantId: string, integrationId: string): Promise<{success: boolean, projects: JiraProject[]}> {
+    const response = await api.get<{success: boolean, projects: JiraProject[]}>(`/api/jira/projects/${tenantId}/${integrationId}`);
+    return response.data;
+  },
+
+  async syncJira(tenantId: string, integrationId: string, syncType: 'full' | 'incremental' = 'full'): Promise<ApiResponse> {
+    const response = await api.post<ApiResponse>(`/api/jira/sync/${tenantId}/${integrationId}?sync_type=${syncType}`);
     return response.data;
   },
 

@@ -24,8 +24,8 @@ const Header: React.FC = () => {
                 </Link>
               </li>
               <li className="nav-item">
-                <Link to="/hubspot" className="nav-link">
-                  HubSpot Tickets
+                <Link to="/jira" className="nav-link">
+                  Jira Issues
                 </Link>
               </li>
 

@@ -73,43 +73,50 @@ const HubSpotConnectCard: React.FC = () => {
 
   return (
     <div className="card mt-4">
-      <div className="card-header">
-        <h3>HubSpot Integration</h3>
+      <div className={`card-header ${status.connected ? 'bg-success-subtle' : ''}`}>
+        <div className="d-flex justify-between align-center">
+          <h3>HubSpot Integration</h3>
+          {status.connected && (
+            <span className="text-success font-weight-bold">Connected ✔</span>
+          )}
+        </div>
       </div>
       <div className="card-body">
         {!status.connected && (
-          <>
-            <p className="text-secondary mb-3">
+          <div className="d-flex justify-between align-center">
+            <p className="text-secondary mb-0">
               Connect your HubSpot account to import support tickets and customer feedback.
             </p>
-            <button 
-              className="btn btn-secondary mb-2" 
-              onClick={() => {
-                localStorage.removeItem('hubspot_integration_id');
-                window.location.reload();
-              }}
-            >
-              Reset Integration
-            </button>
-            <br />
-            <button className="btn btn-orange" onClick={handleConnect} disabled={isLoading}>
-              {isLoading ? 'Connecting…' : 'Connect HubSpot'}
-            </button>
-          </>
+            <div className="d-flex gap-2">
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => {
+                  localStorage.removeItem('hubspot_integration_id');
+                  window.location.reload();
+                }}
+              >
+                Reset
+              </button>
+              <button className="btn btn-primary" onClick={handleConnect} disabled={isLoading}>
+                {isLoading ? 'Connecting…' : 'Connect HubSpot'}
+              </button>
+            </div>
+          </div>
         )}
 
         {status.connected && (
-          <>
-            <p className="text-success mb-2">Connected ✔</p>
-            {status.last_sync && (
-              <p className="text-sm text-secondary mb-3">Last sync: {new Date(status.last_sync).toLocaleString()}</p>
-            )}
-            <button className="btn btn-secondary" onClick={handleDisconnect} disabled={isLoading}>
+          <div className="d-flex justify-between align-center">
+            <div>
+              {status.last_sync && (
+                <p className="text-sm text-secondary mb-0">Last sync: {new Date(status.last_sync).toLocaleString()}</p>
+              )}
+            </div>
+            <button className="btn btn-danger" onClick={handleDisconnect} disabled={isLoading}>
               {isLoading ? 'Disconnecting…' : 'Disconnect'}
             </button>
-          </>
+          </div>
         )}
-        {error && <div className="alert alert-danger mt-3">{error}</div>}
+        {error && <div className="alert alert-danger mt-3">{typeof error === 'string' ? error : JSON.stringify(error)}</div>}
       </div>
     </div>
   );
