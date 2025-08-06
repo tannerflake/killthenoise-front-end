@@ -116,7 +116,7 @@ const HubSpotConnectCard: React.FC = () => {
             </button>
           </div>
         )}
-        {error && <div className="alert alert-danger mt-3">{error}</div>}
+        {error && <div className="alert alert-danger mt-3">{typeof error === 'string' ? error : JSON.stringify(error)}</div>}
       </div>
     </div>
   );

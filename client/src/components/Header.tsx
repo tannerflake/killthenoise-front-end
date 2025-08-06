@@ -23,6 +23,11 @@ const Header: React.FC = () => {
                   Integrations
                 </Link>
               </li>
+              <li className="nav-item">
+                <Link to="/jira" className="nav-link">
+                  Jira Issues
+                </Link>
+              </li>
 
             </ul>
           </nav>
