@@ -23,11 +23,6 @@ const Header: React.FC = () => {
                   Integrations
                 </Link>
               </li>
-              <li className="nav-item">
-                <Link to="/hubspot" className="nav-link">
-                  HubSpot Tickets
-                </Link>
-              </li>
 
             </ul>
           </nav>
