@@ -1,4 +1,5 @@
 import React from 'react';
+import { Badge } from './ui';
 
 interface Issue {
   id: number;
@@ -23,10 +24,10 @@ interface IssueTableProps {
 
 const IssueTable: React.FC<IssueTableProps> = ({ issues }) => {
   const getSeverityBadge = (severity: number) => {
-    if (severity >= 4) return <span className="badge badge-danger">Critical</span>;
-    if (severity >= 3) return <span className="badge badge-warning">High</span>;
-    if (severity >= 2) return <span className="badge badge-info">Medium</span>;
-    return <span className="badge badge-success">Low</span>;
+    if (severity >= 4) return <Badge variant="destructive">Critical</Badge>;
+    if (severity >= 3) return <Badge className="bg-yellow-500 hover:bg-yellow-600">High</Badge>;
+    if (severity >= 2) return <Badge className="bg-blue-500 hover:bg-blue-600">Medium</Badge>;
+    return <Badge className="bg-green-500 hover:bg-green-600">Low</Badge>;
   };
 
   const getSourceIcon = (source: string) => {
@@ -41,33 +42,33 @@ const IssueTable: React.FC<IssueTableProps> = ({ issues }) => {
 
   const getTypeBadge = (type: string) => {
     switch (type) {
-      case 'bug': return <span className="badge badge-danger">🐛</span>;
-      case 'feature': return <span className="badge badge-primary">✨</span>;
-      default: return <span className="badge badge-secondary">{type}</span>;
+      case 'bug': return <Badge variant="destructive">🐛</Badge>;
+      case 'feature': return <Badge>✨</Badge>;
+      default: return <Badge variant="secondary">{type}</Badge>;
     }
   };
 
   const getJiraStatusBadge = (issue: Issue) => {
     if (!issue.jira_exists) {
-      return <span className="badge badge-secondary">❌</span>;
+      return <Badge variant="secondary">❌</Badge>;
     }
     
     if (!issue.jira_status) {
-      return <span className="badge badge-warning">❓</span>;
+      return <Badge className="bg-yellow-500 hover:bg-yellow-600">❓</Badge>;
     }
 
     switch (issue.jira_status.toLowerCase()) {
       case 'done':
       case 'closed':
-        return <span className="badge badge-success">✅</span>;
+        return <Badge className="bg-green-500 hover:bg-green-600">✅</Badge>;
       case 'in progress':
-        return <span className="badge badge-info">🔄</span>;
+        return <Badge className="bg-blue-500 hover:bg-blue-600">🔄</Badge>;
       case 'to do':
-        return <span className="badge badge-warning">📋</span>;
+        return <Badge className="bg-yellow-500 hover:bg-yellow-600">📋</Badge>;
       case 'backlog':
-        return <span className="badge badge-secondary">📚</span>;
+        return <Badge variant="secondary">📚</Badge>;
       default:
-        return <span className="badge badge-secondary">{issue.jira_status}</span>;
+        return <Badge variant="secondary">{issue.jira_status}</Badge>;
     }
   };
 
@@ -149,9 +150,9 @@ const IssueTable: React.FC<IssueTableProps> = ({ issues }) => {
                 <span className="text-secondary text-sm"> reports</span>
               </td>
               <td>
-                <span className={`badge ${issue.status === 'open' ? 'badge-warning' : 'badge-success'}`}>
+                <Badge className={issue.status === 'open' ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600'}>
                   {issue.status}
-                </span>
+                </Badge>
               </td>
             </tr>
           ))}
