@@ -1632,4 +1632,43 @@ a:hover {
 .jira-connected-status .alert-success h4 {
   color: #155724;
   margin-bottom: 0.5rem;
+}
+
+/* Dashboard main title styling */
+.dashboard-main-title {
+  font-size: 3rem !important;
+  font-weight: 700 !important;
+  margin-bottom: 1rem !important;
+}
+
+/* AI Issues table header styling */
+.ai-issues-bleed .table thead th {
+  background-color: #f8f9fa !important;
+  background-image: none !important;
+  border-bottom: 2px solid #dee2e6 !important;
+  font-weight: 600 !important;
+  color: #495057 !important;
+  padding: 1rem 0.75rem !important;
+}
+
+@media (max-width: 768px) {
+  .dashboard-main-title {
+    font-size: 2.25rem !important;
+  }
+} 
+
+/* Full-bleed AI issues section with 50px viewport margins */
+.ai-issues-bleed {
+  width: calc(100vw - 100px); /* 50px on each side */
+  margin-left: 50px;
+  margin-right: 50px;
+}
+
+/* Ensure it adapts on very small screens */
+@media (max-width: 640px) {
+  .ai-issues-bleed {
+    width: 100vw;
+    margin-left: 0;
+    margin-right: 0;
+  }
 } 

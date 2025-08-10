@@ -97,6 +97,34 @@ export interface Issue {
   updated_at: string;
 }
 
+export interface AiIssueSourceBreakdown {
+  source: string; // e.g., 'hubspot', 'jira', 'slack'
+  count: number;
+}
+
+export interface AiIssueGroup {
+  id: string;
+  tenant_id: string;
+  title: string;
+  summary: string;
+  severity?: number | null;
+  status?: string | null;
+  tags?: string[];
+  frequency: number;
+  sources: AiIssueSourceBreakdown[]; // aggregated counts by source
+  updated_at: string;
+}
+
+export interface AiIssueReportItem {
+  id: string;
+  group_id: string;
+  source: string; // hubspot | jira | slack | etc
+  title: string;
+  url?: string | null;
+  external_id?: string | null;
+  created_at: string;
+}
+
 // Create API client
 export const api = axios.create({
   baseURL: process.env.REACT_APP_API_BASE || 'http://localhost:8000',
@@ -136,6 +164,22 @@ export const apiClient = {
     params.append('limit', limit.toString());
     
     const response = await api.get<ApiResponse<Issue[]>>(`/api/issues/?${params}`);
+    return response.data;
+  },
+
+  // AI Issues API
+  async listAiIssues(tenantId: string, limit: number = 20): Promise<ApiResponse<AiIssueGroup[]>> {
+    const response = await api.get<ApiResponse<AiIssueGroup[]>>(`/api/issues/ai?tenant_id=${tenantId}&limit=${limit}`);
+    return response.data;
+  },
+
+  async getAiIssueReports(groupId: string): Promise<ApiResponse<AiIssueReportItem[]>> {
+    const response = await api.get<ApiResponse<AiIssueReportItem[]>>(`/api/issues/ai/${groupId}/reports`);
+    return response.data;
+  },
+
+  async reclusterAiIssues(tenantId: string): Promise<ApiResponse> {
+    const response = await api.post<ApiResponse>(`/api/issues/ai/recluster/${tenantId}`);
     return response.data;
   },
 
