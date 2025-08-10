@@ -79,28 +79,28 @@
   --stone-900: #1c1917;
   --stone-950: #0c0a09;
   
-  /* Color palette using Stone */
-  --primary-color: #57534e; /* stone-600 */
-  --primary-dark: #44403c; /* stone-700 */
-  --secondary-color: #78716c; /* stone-500 */
-  --accent-color: #a8a29e; /* stone-400 */
-  --success-color: #10b981;
-  --danger-color: #ef4444;
-  --warning-color: #f59e0b;
+  /* App theme palette - Indigo/Cyan on Slate */
+  --primary-color: #4f46e5; /* indigo-600 */
+  --primary-dark: #4338ca; /* indigo-700 */
+  --secondary-color: #0ea5e9; /* sky-500 */
+  --accent-color: #22d3ee; /* cyan-400 */
+  --success-color: #22c55e; /* green-500 */
+  --danger-color: #ef4444;  /* red-500 */
+  --warning-color: #f59e0b; /* amber-500 */
   
-  /* Background colors */
-  --bg-primary: #fafaf9; /* stone-50 */
-  --bg-secondary: #f5f5f4; /* stone-100 */
-  --bg-tertiary: #e7e5e4; /* stone-200 */
+  /* Background colors (slate-inspired neutrals) */
+  --bg-primary: #f8fafc;   /* slate-50 */
+  --bg-secondary: #f1f5f9; /* slate-100 */
+  --bg-tertiary: #e2e8f0;  /* slate-200 */
   
   /* Text colors */
-  --text-primary: #1c1917; /* stone-900 */
-  --text-secondary: #57534e; /* stone-600 */
-  --text-muted: #78716c; /* stone-500 */
+  --text-primary: #0f172a;   /* slate-900 */
+  --text-secondary: #334155; /* slate-700 */
+  --text-muted: #64748b;     /* slate-500 */
   
   /* Border colors */
-  --border-color: #d6d3d1; /* stone-300 */
-  --border-light: #e7e5e4; /* stone-200 */
+  --border-color: #cbd5e1; /* slate-300 */
+  --border-light: #e2e8f0; /* slate-200 */
   
   /* Spacing */
   --spacing-xs: 0.25rem;
@@ -243,11 +243,22 @@ body {
   width: 80%;
 }
 
+.nav-link.active {
+  color: var(--primary-color);
+  background-color: var(--bg-secondary);
+  font-weight: 700;
+}
+
+.nav-link.active::after {
+  width: 100%;
+  background-color: var(--primary-color);
+}
+
 /* Dashboard */
 .dashboard-header {
-  margin-bottom: var(--spacing-2xl);
+  margin-bottom: 1rem;
   text-align: center;
-  padding: var(--spacing-2xl) 0;
+  padding: 1.5rem 0 0.5rem 0;
 }
 
 .dashboard-header h1 {

@@ -183,6 +183,12 @@ export const apiClient = {
     return response.data;
   },
 
+  async createJiraTicketFromAiIssue(aiIssueId: string, ticketData: { title: string; description: string }): Promise<ApiResponse<{ ticket_key: string; ticket_url: string }>> {
+    const tenantId = localStorage.getItem('tenantId') || 'demo-tenant';
+    const response = await api.post<ApiResponse<{ ticket_key: string; ticket_url: string }>>(`/api/issues/ai/${aiIssueId}/create-jira-ticket?tenant_id=${tenantId}`, ticketData);
+    return response.data;
+  },
+
   // HubSpot API
   async getHubSpotStatus(tenantId: string, integrationId: string): Promise<HubSpotStatus> {
     const response = await api.get<HubSpotStatus>(`/api/hubspot/status/${tenantId}/${integrationId}`);

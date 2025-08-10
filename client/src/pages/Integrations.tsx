@@ -4,7 +4,7 @@ import { apiClient } from '../lib/api';
 import HubSpotConnectCard from '../components/HubSpotConnectCard';
 import { JiraApiTokenForm } from '../components/JiraApiTokenForm';
 import { JiraIntegrationStatus } from '../components/JiraIntegrationStatus';
-import { JiraIssuesList } from '../components/JiraIssuesList';
+
 import IntegrationStatus from '../components/IntegrationStatus';
 import { useHubSpot } from '../hooks/useHubSpot';
 import { useTenant } from '../context/TenantContext';
@@ -20,8 +20,8 @@ const Integrations: React.FC = () => {
   const [message, setMessage] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [jiraIntegrationId, setJiraIntegrationId] = useState<string | null>(null);
-  const [jiraIssues, setJiraIssues] = useState<any[]>([]);
-  const [jiraLoading, setJiraLoading] = useState(false);
+
+
   const integrationId = localStorage.getItem('hubspot_integration_id') || '550e8400-e29b-41d4-a716-446655440001';
   const { listTickets, syncTickets, loading: hubspotLoading, error: hubspotError } = useHubSpot(tenantId, integrationId);
   const [tickets, setTickets] = useState<TransformedHubSpotTicket[]>([]);
@@ -77,39 +77,7 @@ const Integrations: React.FC = () => {
     }
   };
 
-  const fetchJiraIssues = async (integrationId: string) => {
-    try {
-      setJiraLoading(true);
-      console.log('Fetching Jira issues for integration:', integrationId);
-      console.log('Using tenant ID:', tenantId);
-      
-      const url = `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000'}/api/jira/issues/${tenantId}/${integrationId}`;
-      console.log('Making request to:', url);
-      
-      const response = await fetch(url);
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-      
-      const data = await response.json();
-      console.log('Full response data:', data);
 
-      if (response.ok) {
-        console.log('Jira issues received:', data);
-        const issues = data.issues || [];
-        console.log('Number of issues found:', issues.length);
-        setJiraIssues(issues);
-      } else {
-        console.error('Failed to fetch Jira issues:', data);
-        console.error('Response status:', response.status);
-        setJiraIssues([]);
-      }
-    } catch (error) {
-      console.error('Error fetching Jira issues:', error);
-      setJiraIssues([]);
-    } finally {
-      setJiraLoading(false);
-    }
-  };
 
   const checkJiraConnection = async (integrationId: string) => {
     try {
@@ -139,7 +107,7 @@ const Integrations: React.FC = () => {
     if (existingJiraId) {
       console.log('Found existing Jira integration ID:', existingJiraId);
       setJiraIntegrationId(existingJiraId);
-      fetchJiraIssues(existingJiraId);
+
     }
   }, []);
 
@@ -223,7 +191,7 @@ const Integrations: React.FC = () => {
                       console.log('Integration created:', integrationId);
                       setJiraIntegrationId(integrationId);
                       localStorage.setItem('jira_integration_id', integrationId);
-                      fetchJiraIssues(integrationId);
+
                     }}
                     onError={(error: string) => {
                       console.error('Connection failed:', error);
@@ -275,7 +243,7 @@ const Integrations: React.FC = () => {
                               console.log('Found connected integration:', connectedIntegration);
                               setJiraIntegrationId(connectedIntegration.id);
                               localStorage.setItem('jira_integration_id', connectedIntegration.id);
-                              fetchJiraIssues(connectedIntegration.id);
+
                             }
                           }
                         } catch (error) {
@@ -298,24 +266,13 @@ const Integrations: React.FC = () => {
                     tenantId={tenantId}
                     integrationId={jiraIntegrationId}
                     onRefresh={() => {
-                      // Refresh issues when status is refreshed
-                      fetchJiraIssues(jiraIntegrationId);
+                      // Status refreshed
                     }}
                   />
                 </div>
               )}
 
-              {/* Jira Issues List */}
-              {jiraIntegrationId && (
-                <div className="integration-section">
-                  <h3>Jira Issues</h3>
-                  <p>Recent issues from your Jira instance.</p>
-                  <JiraIssuesList
-                    tenantId={tenantId}
-                    integrationId={jiraIntegrationId}
-                  />
-                </div>
-              )}
+
             </div>
           )}
 

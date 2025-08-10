@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback, useState } from 'react';
 import { apiClient, AiIssueGroup, AiIssueReportItem } from '../lib/api';
+import JiraTicketModal from './JiraTicketModal';
 import { Badge, Button, Card, CardContent } from './ui';
 import { useTenant } from '../context/TenantContext';
 
@@ -45,7 +46,7 @@ function getJiraKeysFromReports(reports: AiIssueReportItem[]): { key: string; ur
   }));
 }
 
-function renderStatusColumn(group: AiIssueGroup, groupReports?: AiIssueReportItem[]) {
+function renderStatusColumn(group: AiIssueGroup, groupReports?: AiIssueReportItem[], onCreateTicket?: (group: AiIssueGroup) => void) {
   // If we have reports loaded for this group, check for Jira keys
   if (groupReports && groupReports.length > 0) {
     const jiraTickets = getJiraKeysFromReports(groupReports);
@@ -98,19 +99,37 @@ function renderStatusColumn(group: AiIssueGroup, groupReports?: AiIssueReportIte
     }
   }
   
-  // If no Jira ticket found, show "No Ticket 🎟️"
+  // If no Jira ticket found, show clickable "No Ticket 🎟️"
   return (
-    <span 
-      className="badge bg-light text-muted border rounded-pill px-3 py-2 d-inline-flex align-items-center gap-1"
+    <button
+      onClick={() => onCreateTicket?.(group)}
+      className="badge border rounded-pill px-3 py-2 d-inline-flex align-items-center gap-1"
       style={{ 
         fontSize: '0.75rem', 
         fontWeight: '500',
-        backgroundColor: '#f8f9fa !important',
-        borderColor: '#dee2e6 !important'
+        backgroundColor: '#f8f9fa',
+        borderColor: '#dee2e6',
+        color: '#6c757d',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        border: '1px solid #dee2e6',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      }}
+      onMouseOver={(e) => {
+        e.currentTarget.style.backgroundColor = '#e9ecef';
+        e.currentTarget.style.color = '#495057';
+        e.currentTarget.style.transform = 'translateY(-1px)';
+        e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+      }}
+      onMouseOut={(e) => {
+        e.currentTarget.style.backgroundColor = '#f8f9fa';
+        e.currentTarget.style.color = '#6c757d';
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
       }}
     >
-      🎟️ No Ticket
-    </span>
+      🎟️ Create Ticket
+    </button>
   );
 }
 
@@ -121,6 +140,8 @@ const AiIssuesTable: React.FC<AiIssuesTableProps> = ({ limit = 20 }) => {
   const [error, setError] = useState<string | null>(null);
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   const [reports, setReports] = useState<Record<string, { loading: boolean; error: string | null; items: AiIssueReportItem[] }>>({});
+  const [showJiraModal, setShowJiraModal] = useState<boolean>(false);
+  const [selectedAiIssue, setSelectedAiIssue] = useState<AiIssueGroup | null>(null);
 
   const fetchGroups = useCallback(async () => {
     try {
@@ -165,6 +186,22 @@ const AiIssuesTable: React.FC<AiIssuesTableProps> = ({ limit = 20 }) => {
     if (nextId && !reports[nextId]) {
       fetchReports(nextId);
     }
+  };
+
+  const handleCreateTicket = (aiIssue: AiIssueGroup) => {
+    setSelectedAiIssue(aiIssue);
+    setShowJiraModal(true);
+  };
+
+  const handleTicketCreated = async (ticketKey: string, ticketUrl: string) => {
+    if (selectedAiIssue) {
+      // Refresh the reports for this group to get the new Jira ticket
+      await fetchReports(selectedAiIssue.id);
+      // Also refresh all groups to get updated data
+      await fetchGroups();
+    }
+    setShowJiraModal(false);
+    setSelectedAiIssue(null);
   };
 
   if (loading) {
@@ -232,7 +269,7 @@ const AiIssuesTable: React.FC<AiIssuesTableProps> = ({ limit = 20 }) => {
                 <td><strong>{group.title}</strong></td>
                 <td className="text-secondary text-sm">{truncate(group.summary, 160)}</td>
                 <td>{severityBadge(group.severity)}</td>
-                <td>{renderStatusColumn(group, reports[group.id]?.items)}</td>
+                <td>{renderStatusColumn(group, reports[group.id]?.items, handleCreateTicket)}</td>
                 <td>
                   <Button className="btn btn-sm" onClick={() => handleToggleReports(group.id)}>
                     {group.frequency}
@@ -279,6 +316,13 @@ const AiIssuesTable: React.FC<AiIssuesTableProps> = ({ limit = 20 }) => {
           ))}
         </tbody>
       </table>
+      
+      <JiraTicketModal
+        show={showJiraModal}
+        onHide={() => setShowJiraModal(false)}
+        aiIssue={selectedAiIssue}
+        onTicketCreated={handleTicketCreated}
+      />
     </div>
   );
 };

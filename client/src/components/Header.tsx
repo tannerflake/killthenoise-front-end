@@ -1,8 +1,17 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import Logo from './Logo';
 
 const Header: React.FC = () => {
+  const location = useLocation();
+  
+  const isActive = (path: string) => {
+    if (path === '/dashboard') {
+      return location.pathname === '/' || location.pathname === '/dashboard';
+    }
+    return location.pathname === path;
+  };
+
   return (
     <header className="header">
       <div className="container">
@@ -14,20 +23,22 @@ const Header: React.FC = () => {
           <nav className="nav">
             <ul className="nav-list">
               <li className="nav-item">
-                <Link to="/dashboard" className="nav-link">
+                <Link 
+                  to="/dashboard" 
+                  className={`nav-link ${isActive('/dashboard') ? 'active' : ''}`}
+                >
                   Dashboard
                 </Link>
               </li>
               <li className="nav-item">
-                <Link to="/integrations" className="nav-link">
+                <Link 
+                  to="/integrations" 
+                  className={`nav-link ${isActive('/integrations') ? 'active' : ''}`}
+                >
                   Integrations
                 </Link>
               </li>
-              <li className="nav-item">
-                <Link to="/jira" className="nav-link">
-                  Jira Issues
-                </Link>
-              </li>
+
 
             </ul>
           </nav>

@@ -7,7 +7,7 @@ const Dashboard: React.FC = () => {
     <div className="dashboard">
       {/* Header (constrained) */}
       <div className="container">
-        <div className="dashboard-header mb-4">
+        <div className="dashboard-header">
           <div>
             <h1 className="dashboard-main-title">Product Issue Dashboard</h1>
           </div>
@@ -16,9 +16,9 @@ const Dashboard: React.FC = () => {
 
       {/* AI Issues List (full-bleed with 50px margins) */}
       <div className="ai-issues-bleed">
-        <div className="card mt-4">
+        <div className="card">
           <div className="card-header">
-            <h3 className="mb-0">AI Issues</h3>
+            <h3 className="mb-0">AI-Generated Issue List</h3>
           </div>
           <div className="card-body">
             <AiIssuesTable limit={20} />
