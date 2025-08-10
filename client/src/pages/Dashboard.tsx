@@ -1,39 +1,7 @@
-import React, { useState, useEffect } from 'react';
-// import { useTopIssues } from '../hooks/useIssues';
-// import IssueTable from '../components/IssueTable';
-import StatsCards from '../components/StatsCards';
-import { Button, Card, CardHeader, CardTitle, CardContent, Alert, AlertDescription } from '../components/ui';
+import React from 'react';
 import AiIssuesTable from '../components/AiIssuesTable';
-import { useTenant } from '../context/TenantContext';
-
-interface Issue {
-  id: number;
-  title: string;
-  description?: string;
-  source: string;
-  severity: number;
-  frequency: number;
-  status: string;
-  type: 'bug' | 'feature';
-  tags?: string[];
-  jira_issue_key?: string;
-  jira_status?: string;
-  jira_exists: boolean;
-  created_at: string;
-  updated_at: string;
-}
 
 const Dashboard: React.FC = () => {
-  const { tenantId } = useTenant();
-  const [error, setError] = useState<string | null>(null);
-
-  // In the AI issues implementation, stats can be calculated later from groups if needed
-  const [stats, setStats] = useState({
-    totalIssues: 0,
-    criticalIssues: 0,
-    openIssues: 0,
-    avgSeverity: 0
-  });
 
   return (
     <div className="dashboard">

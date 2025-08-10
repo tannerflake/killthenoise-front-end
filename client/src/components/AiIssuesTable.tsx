@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { apiClient, AiIssueGroup, AiIssueReportItem } from '../lib/api';
 import { Badge, Button, Card, CardContent } from './ui';
 import { useTenant } from '../context/TenantContext';
@@ -45,7 +45,7 @@ const AiIssuesTable: React.FC<AiIssuesTableProps> = ({ limit = 20 }) => {
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   const [reports, setReports] = useState<Record<string, { loading: boolean; error: string | null; items: AiIssueReportItem[] }>>({});
 
-  const fetchGroups = async () => {
+  const fetchGroups = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -56,7 +56,7 @@ const AiIssuesTable: React.FC<AiIssuesTableProps> = ({ limit = 20 }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tenantId, limit]);
 
   const fetchReports = async (groupId: string) => {
     setReports(prev => ({ ...prev, [groupId]: { loading: true, error: null, items: prev[groupId]?.items || [] } }));
@@ -70,7 +70,7 @@ const AiIssuesTable: React.FC<AiIssuesTableProps> = ({ limit = 20 }) => {
 
   useEffect(() => {
     fetchGroups();
-  }, [tenantId, limit]);
+  }, [fetchGroups]);
 
   const handleToggleReports = (groupId: string) => {
     const nextId = expandedGroupId === groupId ? null : groupId;
