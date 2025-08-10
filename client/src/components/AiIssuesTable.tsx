@@ -37,6 +37,83 @@ function statusBadge(status?: string | null) {
   return <Badge variant="secondary">{status}</Badge>;
 }
 
+function getJiraKeysFromReports(reports: AiIssueReportItem[]): { key: string; url?: string }[] {
+  const jiraReports = reports.filter(report => report.source === 'jira' && report.external_id);
+  return jiraReports.map(report => ({
+    key: report.external_id!,
+    url: report.url || undefined
+  }));
+}
+
+function renderStatusColumn(group: AiIssueGroup, groupReports?: AiIssueReportItem[]) {
+  // If we have reports loaded for this group, check for Jira keys
+  if (groupReports && groupReports.length > 0) {
+    const jiraTickets = getJiraKeysFromReports(groupReports);
+    if (jiraTickets.length > 0) {
+      return (
+        <div className="d-flex flex-wrap gap-1">
+          {jiraTickets.map((ticket, index) => (
+            ticket.url ? (
+              <a 
+                key={`${ticket.key}-${index}`}
+                href={ticket.url} 
+                target="_blank" 
+                rel="noreferrer" 
+                className="badge text-white text-decoration-none rounded-pill px-3 py-2 d-inline-flex align-items-center gap-1"
+                style={{ 
+                  fontSize: '0.75rem', 
+                  fontWeight: '500',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  backgroundColor: '#6c7b8a'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                }}
+              >
+                🎫 {ticket.key}
+              </a>
+            ) : (
+              <span 
+                key={`${ticket.key}-${index}`}
+                className="badge text-white rounded-pill px-3 py-2 d-inline-flex align-items-center gap-1"
+                style={{ 
+                  fontSize: '0.75rem', 
+                  fontWeight: '500',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  backgroundColor: '#6c7b8a'
+                }}
+              >
+                🎫 {ticket.key}
+              </span>
+            )
+          ))}
+        </div>
+      );
+    }
+  }
+  
+  // If no Jira ticket found, show "No Ticket 🎟️"
+  return (
+    <span 
+      className="badge bg-light text-muted border rounded-pill px-3 py-2 d-inline-flex align-items-center gap-1"
+      style={{ 
+        fontSize: '0.75rem', 
+        fontWeight: '500',
+        backgroundColor: '#f8f9fa !important',
+        borderColor: '#dee2e6 !important'
+      }}
+    >
+      🎟️ No Ticket
+    </span>
+  );
+}
+
 const AiIssuesTable: React.FC<AiIssuesTableProps> = ({ limit = 20 }) => {
   const { tenantId } = useTenant();
   const [groups, setGroups] = useState<AiIssueGroup[]>([]);
@@ -71,6 +148,16 @@ const AiIssuesTable: React.FC<AiIssuesTableProps> = ({ limit = 20 }) => {
   useEffect(() => {
     fetchGroups();
   }, [fetchGroups]);
+
+  // Auto-fetch reports for groups with Jira sources to get Jira keys
+  useEffect(() => {
+    groups.forEach(group => {
+      const hasJiraSource = group.sources?.some(source => source.source === 'jira');
+      if (hasJiraSource && !reports[group.id]) {
+        fetchReports(group.id);
+      }
+    });
+  }, [groups]);
 
   const handleToggleReports = (groupId: string) => {
     const nextId = expandedGroupId === groupId ? null : groupId;
@@ -134,7 +221,7 @@ const AiIssuesTable: React.FC<AiIssuesTableProps> = ({ limit = 20 }) => {
             <th>Issue</th>
             <th>Summary</th>
             <th>Severity</th>
-            <th>Status</th>
+            <th>Jira Ticket</th>
             <th>Reports</th>
           </tr>
         </thead>
@@ -145,7 +232,7 @@ const AiIssuesTable: React.FC<AiIssuesTableProps> = ({ limit = 20 }) => {
                 <td><strong>{group.title}</strong></td>
                 <td className="text-secondary text-sm">{truncate(group.summary, 160)}</td>
                 <td>{severityBadge(group.severity)}</td>
-                <td>{statusBadge(group.status)}</td>
+                <td>{renderStatusColumn(group, reports[group.id]?.items)}</td>
                 <td>
                   <Button className="btn btn-sm" onClick={() => handleToggleReports(group.id)}>
                     {group.frequency}
