@@ -183,6 +183,41 @@ export const apiClient = {
     return response.data;
   },
 
+  async createJiraTicketFromAiIssue(aiIssueId: string, ticketData: { title: string; description: string }): Promise<ApiResponse<{ ticket_key: string; ticket_url: string }>> {
+    const tenantId = localStorage.getItem('tenantId') || 'demo-tenant';
+    const response = await api.post<ApiResponse<{ ticket_key: string; ticket_url: string }>>(`/api/issues/ai/${aiIssueId}/create-jira-ticket?tenant_id=${tenantId}`, ticketData);
+    return response.data;
+  },
+
+  // Slack API
+  async createSlackIntegration(tenantId: string, token: string, team?: string): Promise<ApiResponse<{ integration_id: string }>> {
+    if (!token?.startsWith("xoxb-") || token.length < 20) {
+      throw new Error("Invalid Slack bot token");
+    }
+    const response = await api.post<ApiResponse<{ integration_id: string }>>(`/api/slack/integrations/${tenantId}`, {
+      token,
+      team: team || null
+    });
+    return response.data;
+  },
+
+  async listSlackChannels(tenantId: string): Promise<ApiResponse<{ id: string; name: string; selected: boolean }[]>> {
+    const response = await api.get<ApiResponse<{ id: string; name: string; selected: boolean }[]>>(`/api/slack/channels/${tenantId}`);
+    return response.data;
+  },
+
+  async updateSlackChannels(tenantId: string, channelIds: string[]): Promise<ApiResponse<string[]>> {
+    const response = await api.post<ApiResponse<string[]>>(`/api/slack/channels/${tenantId}`, {
+      channel_ids: channelIds
+    });
+    return response.data;
+  },
+
+  async syncSlack(tenantId: string, lookbackDays: number = 7): Promise<ApiResponse<{ ingested: number }>> {
+    const response = await api.post<ApiResponse<{ ingested: number }>>(`/api/slack/sync/${tenantId}?lookback_days=${lookbackDays}`);
+    return response.data;
+  },
+
   // HubSpot API
   async getHubSpotStatus(tenantId: string, integrationId: string): Promise<HubSpotStatus> {
     const response = await api.get<HubSpotStatus>(`/api/hubspot/status/${tenantId}/${integrationId}`);
