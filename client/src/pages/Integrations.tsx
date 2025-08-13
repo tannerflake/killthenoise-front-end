@@ -4,7 +4,10 @@ import { apiClient } from '../lib/api';
 import HubSpotConnectCard from '../components/HubSpotConnectCard';
 import { JiraApiTokenForm } from '../components/JiraApiTokenForm';
 import { JiraIntegrationStatus } from '../components/JiraIntegrationStatus';
-import { JiraIssuesList } from '../components/JiraIssuesList';
+import ConnectSlackCard from '../components/ConnectSlackCard';
+import SlackChannelPicker from '../components/SlackChannelPicker';
+import SlackIntegrationStatus from '../components/SlackIntegrationStatus';
+
 import IntegrationStatus from '../components/IntegrationStatus';
 import { useHubSpot } from '../hooks/useHubSpot';
 import { useTenant } from '../context/TenantContext';
@@ -20,6 +23,8 @@ const Integrations: React.FC = () => {
   const [message, setMessage] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [jiraIntegrationId, setJiraIntegrationId] = useState<string | null>(null);
+  const [slackIntegrationId, setSlackIntegrationId] = useState<string | null>(null);
+  const [showSlackChannelPicker, setShowSlackChannelPicker] = useState(false);
   const [jiraIssues, setJiraIssues] = useState<any[]>([]);
   const [jiraLoading, setJiraLoading] = useState(false);
   const integrationId = localStorage.getItem('hubspot_integration_id') || '550e8400-e29b-41d4-a716-446655440001';
@@ -305,17 +310,7 @@ const Integrations: React.FC = () => {
                 </div>
               )}
 
-              {/* Jira Issues List */}
-              {jiraIntegrationId && (
-                <div className="integration-section">
-                  <h3>Jira Issues</h3>
-                  <p>Recent issues from your Jira instance.</p>
-                  <JiraIssuesList
-                    tenantId={tenantId}
-                    integrationId={jiraIntegrationId}
-                  />
-                </div>
-              )}
+
             </div>
           )}
 
@@ -384,10 +379,66 @@ const Integrations: React.FC = () => {
             <div className="tab-pane fade show active">
               <div className="integration-section">
                 <h3>Slack Integration</h3>
-                <p>Connect your Slack workspace to sync messages and notifications.</p>
-                <div className="alert alert-info">
-                  <h4>🚧 Coming Soon</h4>
-                  <p>Slack integration is currently under development. Check back soon!</p>
+                <p>Connect your Slack workspace to sync messages and analyze them for customer issues.</p>
+                
+                {!slackIntegrationId && !showSlackChannelPicker && (
+                  <ConnectSlackCard
+                    tenantId={tenantId}
+                    onSuccess={(integrationId: string) => {
+                      console.log('Slack integration created:', integrationId);
+                      setSlackIntegrationId(integrationId);
+                      setShowSlackChannelPicker(true);
+                      setMessage('Slack connected successfully! Now select channels to sync.');
+                      setTimeout(() => setMessage(null), 5000);
+                    }}
+                    onError={(error: string) => {
+                      console.error('Slack connection failed:', error);
+                      setMessage(`Slack connection failed: ${error}`);
+                    }}
+                  />
+                )}
+
+                {(slackIntegrationId || showSlackChannelPicker) && (
+                  <>
+                    <div className="mb-4">
+                      <SlackIntegrationStatus
+                        tenantId={tenantId}
+                        onRefresh={() => {
+                          // Refresh logic if needed
+                        }}
+                      />
+                    </div>
+
+                    <div className="mb-4">
+                      <SlackChannelPicker
+                        tenantId={tenantId}
+                        onChannelsUpdated={(selectedChannels: string[]) => {
+                          console.log('Channels updated:', selectedChannels);
+                          setMessage(`Selected ${selectedChannels.length} channels for sync.`);
+                          setTimeout(() => setMessage(null), 3000);
+                        }}
+                        onSyncComplete={(ingestedCount: number) => {
+                          console.log('Sync completed:', ingestedCount);
+                          setMessage(`Sync completed! Ingested ${ingestedCount} messages. Check the AI Issues dashboard for results.`);
+                          setTimeout(() => setMessage(null), 8000);
+                        }}
+                        onError={(error: string) => {
+                          console.error('Slack error:', error);
+                          setMessage(`Slack error: ${error}`);
+                        }}
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div className="mt-4 p-3 bg-light rounded">
+                  <h6 className="mb-2">💡 How it works</h6>
+                  <ol className="mb-0 small">
+                    <li>Connect your Slack workspace with a bot token</li>
+                    <li>Select channels containing customer feedback or bug reports</li>
+                    <li>Sync messages to analyze for issues and patterns</li>
+                    <li>View AI-grouped issues on the Dashboard with Slack source data</li>
+                  </ol>
                 </div>
               </div>
             </div>
