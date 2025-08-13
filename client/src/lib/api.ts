@@ -189,6 +189,14 @@ export const apiClient = {
     return response.data;
   },
 
+  async generateJiraDescription(aiIssueGroup: { title: string; summary: string }): Promise<ApiResponse<{ description: string }>> {
+    const response = await api.post<ApiResponse<{ description: string }>>('/api/ai/generate-jira-description', {
+      title: aiIssueGroup.title,
+      summary: aiIssueGroup.summary
+    });
+    return response.data;
+  },
+
   // Slack API
   async createSlackIntegration(tenantId: string, token: string, team?: string): Promise<ApiResponse<{ integration_id: string }>> {
     if (!token?.startsWith("xoxb-") || token.length < 20) {

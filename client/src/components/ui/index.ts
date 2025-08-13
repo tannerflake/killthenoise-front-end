@@ -1,4 +1,5 @@
 export { Button, buttonVariants } from "./button"
 export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from "./card"
 export { Alert, AlertTitle, AlertDescription } from "./alert"
-export { Badge, badgeVariants } from "./badge" 
+export { Badge, badgeVariants } from "./badge"
+export { Toast, ToastAction, ToastClose, ToastTitle, ToastDescription } from "./toast" 
