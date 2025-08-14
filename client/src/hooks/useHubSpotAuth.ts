@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { apiClient, HubSpotAuthStatus } from '../lib/api';
 
 interface UseHubSpotAuthProps {
@@ -8,26 +8,35 @@ interface UseHubSpotAuthProps {
 interface UseHubSpotAuthReturn {
   authStatus: HubSpotAuthStatus | null;
   loading: boolean;
+  polling: boolean;
   error: string | null;
   checkAuth: () => Promise<void>;
   refreshToken: () => Promise<boolean>;
+  startPolling: () => void;
+  stopPolling: () => void;
 }
 
 export const useHubSpotAuth = ({ tenantId }: UseHubSpotAuthProps): UseHubSpotAuthReturn => {
   const [authStatus, setAuthStatus] = useState<HubSpotAuthStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [polling, setPolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
-  const checkAuth = async () => {
+  const checkAuth = async (isPolling: boolean = false) => {
     try {
-      setLoading(true);
+      if (!isPolling) {
+        setLoading(true);
+      }
       setError(null);
       const status = await apiClient.getHubSpotAuthStatus(tenantId);
       setAuthStatus(status);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to check authentication status');
     } finally {
-      setLoading(false);
+      if (!isPolling) {
+        setLoading(false);
+      }
     }
   };
 
@@ -53,15 +62,47 @@ export const useHubSpotAuth = ({ tenantId }: UseHubSpotAuthProps): UseHubSpotAut
     }
   };
 
+  const startPolling = () => {
+    if (pollingRef.current) return; // Already polling
+    
+    setPolling(true);
+    pollingRef.current = setInterval(async () => {
+      await checkAuth(true); // Pass true to indicate this is a polling call
+      if (authStatus?.authenticated) {
+        stopPolling();
+      }
+    }, 3000); // Poll every 3 seconds instead of 2
+  };
+
+  const stopPolling = () => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+    setPolling(false);
+  };
+
   useEffect(() => {
     checkAuth();
   }, [tenantId]);
 
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+      }
+    };
+  }, []);
+
   return {
     authStatus,
     loading,
+    polling,
     error,
     checkAuth,
-    refreshToken
+    refreshToken,
+    startPolling,
+    stopPolling
   };
 };

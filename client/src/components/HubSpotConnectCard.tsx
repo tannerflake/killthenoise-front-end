@@ -5,7 +5,7 @@ import { useTenant } from '../context/TenantContext';
 
 const HubSpotConnectCard: React.FC = () => {
   const { tenantId } = useTenant();
-  const { authStatus, loading, error, checkAuth, refreshToken } = useHubSpotAuth({ tenantId });
+  const { authStatus, loading, polling, error, checkAuth, refreshToken, startPolling, stopPolling } = useHubSpotAuth({ tenantId });
   const [connecting, setConnecting] = useState(false);
 
   const handleConnect = async () => {
@@ -17,18 +17,12 @@ const HubSpotConnectCard: React.FC = () => {
         // Open OAuth URL in new window
         window.open(result.authorization_url, '_blank', 'width=600,height=700');
         
-        // Poll for authentication completion
-        const pollInterval = setInterval(async () => {
-          await checkAuth();
-          if (authStatus?.authenticated) {
-            clearInterval(pollInterval);
-            setConnecting(false);
-          }
-        }, 2000);
+        // Start polling for authentication completion
+        startPolling();
         
         // Stop polling after 5 minutes
         setTimeout(() => {
-          clearInterval(pollInterval);
+          stopPolling();
           setConnecting(false);
         }, 300000);
       }
@@ -45,7 +39,8 @@ const HubSpotConnectCard: React.FC = () => {
     }
   };
 
-  if (loading) {
+  // Show loading only on initial load, not during polling
+  if (loading && !polling) {
     return (
       <div className="card mt-4">
         <div className="card-body">
@@ -81,7 +76,14 @@ const HubSpotConnectCard: React.FC = () => {
         <div className="card-header bg-success-subtle">
           <div className="d-flex justify-content-between align-items-center">
             <h3>HubSpot Integration</h3>
-            <span className="text-success fw-bold">Connected ✔</span>
+            <div className="d-flex align-items-center">
+              <span className="text-success fw-bold me-2">Connected ✔</span>
+              {polling && (
+                <div className="spinner-border spinner-border-sm text-success" role="status">
+                  <span className="visually-hidden">Refreshing...</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         <div className="card-body">
@@ -105,7 +107,7 @@ const HubSpotConnectCard: React.FC = () => {
               <button 
                 className="btn btn-outline-primary btn-sm" 
                 onClick={handleRefresh} 
-                disabled={connecting}
+                disabled={connecting || loading}
               >
                 Refresh Token
               </button>
@@ -136,9 +138,9 @@ const HubSpotConnectCard: React.FC = () => {
               <button 
                 className="btn btn-warning" 
                 onClick={handleRefresh} 
-                disabled={connecting}
+                disabled={connecting || loading}
               >
-                {connecting ? 'Refreshing...' : 'Refresh Connection'}
+                {loading ? 'Refreshing...' : 'Refresh Connection'}
               </button>
             </div>
           </div>
@@ -152,7 +154,14 @@ const HubSpotConnectCard: React.FC = () => {
       <div className="card-header">
         <div className="d-flex justify-content-between align-items-center">
           <h3>HubSpot Integration</h3>
-          <span className="text-muted">🔗</span>
+          <div className="d-flex align-items-center">
+            <span className="text-muted me-2">🔗</span>
+            {polling && (
+              <div className="spinner-border spinner-border-sm text-muted" role="status">
+                <span className="visually-hidden">Checking...</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
       <div className="card-body">
@@ -161,12 +170,18 @@ const HubSpotConnectCard: React.FC = () => {
             <p className="text-muted mb-0">
               Connect your HubSpot account to sync tickets and issues.
             </p>
+            {polling && (
+              <div className="text-muted small mt-2">
+                <i className="fas fa-sync-alt me-1"></i>
+                Waiting for authentication...
+              </div>
+            )}
           </div>
           <div className="col-md-4 text-end">
             <button 
               className="btn btn-primary" 
               onClick={handleConnect} 
-              disabled={connecting}
+              disabled={connecting || polling}
             >
               {connecting ? 'Connecting...' : 'Connect to HubSpot'}
             </button>
