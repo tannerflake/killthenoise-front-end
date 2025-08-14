@@ -1,122 +1,192 @@
+import React, { useState } from 'react';
+import { useHubSpotAuth } from '../hooks/useHubSpotAuth';
 import { apiClient } from '../lib/api';
 import { useTenant } from '../context/TenantContext';
-import { useState, useEffect } from 'react';
-import { HubSpotStatus } from '../lib/api';
 
 const HubSpotConnectCard: React.FC = () => {
   const { tenantId } = useTenant();
-  const [integrationId, setIntegrationId] = useState<string>(() => {
-    return localStorage.getItem('hubspot_integration_id') || '550e8400-e29b-41d4-a716-446655440001';
-  });
-  const [status, setStatus] = useState<HubSpotStatus>({ connected: false });
-  const [statusLoading, setStatusLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const isLoading = loading || statusLoading;
-
-  const fetchStatus = async () => {
-    try {
-      setStatusLoading(true);
-      const hubspotStatus = await apiClient.getHubSpotStatus(tenantId, integrationId);
-      setStatus(hubspotStatus);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching HubSpot status', err);
-      setStatus({ connected: false });
-      setError('network');
-    } finally {
-      setStatusLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchStatus();
-    const id = setInterval(fetchStatus, 60000); // refresh each minute
-    return () => clearInterval(id);
-  }, [tenantId, integrationId]);
+  const { authStatus, loading, polling, error, checkAuth, refreshToken, startPolling, stopPolling } = useHubSpotAuth({ tenantId });
+  const [connecting, setConnecting] = useState(false);
 
   const handleConnect = async () => {
     try {
-      setLoading(true);
-      const authData = await apiClient.getHubSpotAuthUrl(tenantId);
-      // Update integration ID from the response
-      if (authData.integration_id) {
-        setIntegrationId(authData.integration_id);
-        localStorage.setItem('hubspot_integration_id', authData.integration_id);
+      setConnecting(true);
+      const result = await apiClient.getHubSpotAuthUrl(tenantId);
+      
+      if (result.success) {
+        // Open OAuth URL in new window
+        window.open(result.authorization_url, '_blank', 'width=600,height=700');
+        
+        // Start polling for authentication completion
+        startPolling();
+        
+        // Stop polling after 5 minutes
+        setTimeout(() => {
+          stopPolling();
+          setConnecting(false);
+        }, 300000);
       }
-      // Store state for CSRF protection
-      const stateParam = authData.authorization_url.match(/state=([^&]+)/)?.[1];
-      if (stateParam) {
-        sessionStorage.setItem('hubspot_oauth_state', stateParam);
-      }
-      window.location.assign(authData.authorization_url);
     } catch (err) {
-      console.error('Error initiating HubSpot OAuth', err);
-    } finally {
-      setLoading(false);
+      console.error('Failed to start OAuth flow:', err);
+      setConnecting(false);
     }
   };
 
-  const handleDisconnect = async () => {
-    try {
-      setLoading(true);
-      // Note: Backend doesn't have a delete endpoint in the guide,
-      // so this would need to be implemented
-      console.log('Disconnect not implemented in backend yet');
-      fetchStatus();
-    } catch (err) {
-      console.error('Error disconnecting HubSpot', err);
-    } finally {
-      setLoading(false);
+  const handleRefresh = async () => {
+    const success = await refreshToken();
+    if (success) {
+      console.log('Token refreshed successfully');
     }
   };
+
+  // Show loading only on initial load, not during polling
+  if (loading && !polling) {
+    return (
+      <div className="card mt-4">
+        <div className="card-body">
+          <div className="d-flex align-items-center">
+            <div className="spinner-border spinner-border-sm me-2" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+            <span>Checking HubSpot connection...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="card mt-4">
+        <div className="card-body">
+          <div className="alert alert-danger">
+            <strong>Error:</strong> {error}
+          </div>
+          <button className="btn btn-primary" onClick={checkAuth}>
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (authStatus?.authenticated) {
+    return (
+      <div className="card mt-4">
+        <div className="card-header bg-success-subtle">
+          <div className="d-flex justify-content-between align-items-center w-100">
+            <h3 className="mb-0">HubSpot Integration</h3>
+            <div className="d-flex align-items-center ms-auto">
+              {polling && (
+                <div className="spinner-border spinner-border-sm text-success me-2" role="status">
+                  <span className="visually-hidden">Refreshing...</span>
+                </div>
+              )}
+              <span className="text-success fw-bold">Connected ✔</span>
+            </div>
+          </div>
+        </div>
+        <div className="card-body">
+          <div className="row">
+            <div className="col-md-8">
+              {authStatus.hub_domain && (
+                <div className="mb-2">
+                  <strong>Hub Domain:</strong> {authStatus.hub_domain}
+                </div>
+              )}
+              {authStatus.scopes && authStatus.scopes.length > 0 && (
+                <div className="mb-2">
+                  <strong>Scopes:</strong> {authStatus.scopes.join(', ')}
+                </div>
+              )}
+              <div className="text-muted small">
+                {authStatus.message}
+              </div>
+            </div>
+            <div className="col-md-4 text-end">
+              <button 
+                className="btn btn-outline-primary btn-sm" 
+                onClick={handleRefresh} 
+                disabled={connecting || loading}
+              >
+                Refresh Token
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (authStatus?.can_refresh) {
+    return (
+      <div className="card mt-4">
+        <div className="card-header bg-warning-subtle">
+          <div className="d-flex justify-content-between align-items-center">
+            <h3>HubSpot Integration</h3>
+            <span className="text-warning fw-bold">⚠️ Token Expired</span>
+          </div>
+        </div>
+        <div className="card-body">
+          <div className="row">
+            <div className="col-md-8">
+              <p className="text-muted mb-0">
+                Your HubSpot token has expired, but it can be refreshed automatically.
+              </p>
+            </div>
+            <div className="col-md-4 text-end">
+              <button 
+                className="btn btn-warning" 
+                onClick={handleRefresh} 
+                disabled={connecting || loading}
+              >
+                {loading ? 'Refreshing...' : 'Refresh Connection'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="card mt-4">
-      <div className={`card-header ${status.connected ? 'bg-success-subtle' : ''}`}>
-        <div className="d-flex justify-between align-center">
+      <div className="card-header">
+        <div className="d-flex justify-content-between align-items-center">
           <h3>HubSpot Integration</h3>
-          {status.connected && (
-            <span className="text-success font-weight-bold">Connected ✔</span>
-          )}
+          <div className="d-flex align-items-center">
+            <span className="text-muted me-2">🔗</span>
+            {polling && (
+              <div className="spinner-border spinner-border-sm text-muted" role="status">
+                <span className="visually-hidden">Checking...</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
       <div className="card-body">
-        {!status.connected && (
-          <div className="d-flex justify-between align-center">
-            <p className="text-secondary mb-0">
-              Connect your HubSpot account to import support tickets and customer feedback.
+        <div className="row">
+          <div className="col-md-8">
+            <p className="text-muted mb-0">
+              Connect your HubSpot account to sync tickets and issues.
             </p>
-            <div className="d-flex gap-2">
-              <button 
-                className="btn btn-secondary" 
-                onClick={() => {
-                  localStorage.removeItem('hubspot_integration_id');
-                  window.location.reload();
-                }}
-              >
-                Reset
-              </button>
-              <button className="btn btn-primary" onClick={handleConnect} disabled={isLoading}>
-                {isLoading ? 'Connecting…' : 'Connect HubSpot'}
-              </button>
-            </div>
+            {polling && (
+              <div className="text-muted small mt-2">
+                <i className="fas fa-sync-alt me-1"></i>
+                Waiting for authentication...
+              </div>
+            )}
           </div>
-        )}
-
-        {status.connected && (
-          <div className="d-flex justify-between align-center">
-            <div>
-              {status.last_sync && (
-                <p className="text-sm text-secondary mb-0">Last sync: {new Date(status.last_sync).toLocaleString()}</p>
-              )}
-            </div>
-            <button className="btn btn-danger" onClick={handleDisconnect} disabled={isLoading}>
-              {isLoading ? 'Disconnecting…' : 'Disconnect'}
+          <div className="col-md-4 text-end">
+            <button 
+              className="btn btn-primary" 
+              onClick={handleConnect} 
+              disabled={connecting || polling}
+            >
+              {connecting ? 'Connecting...' : 'Connect to HubSpot'}
             </button>
           </div>
-        )}
-        {error && <div className="alert alert-danger mt-3">{typeof error === 'string' ? error : JSON.stringify(error)}</div>}
+        </div>
       </div>
     </div>
   );

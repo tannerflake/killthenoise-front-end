@@ -14,6 +14,16 @@ export interface HubSpotStatus {
   integration_id?: string;
 }
 
+export interface HubSpotAuthStatus {
+  authenticated: boolean;
+  message: string;
+  needs_auth: boolean;
+  integration_id?: string;
+  hub_domain?: string;
+  scopes?: string[];
+  can_refresh?: boolean;
+}
+
 export interface JiraStatus {
   connected: boolean;
   user?: {
@@ -257,6 +267,16 @@ export const apiClient = {
 
   async getHubSpotAuthUrl(tenantId: string): Promise<{ success: boolean; authorization_url: string; integration_id: string; tenant_id: string }> {
     const response = await api.get<{ success: boolean; authorization_url: string; integration_id: string; tenant_id: string }>(`/api/hubspot/authorize/${tenantId}`);
+    return response.data;
+  },
+
+  async getHubSpotAuthStatus(tenantId: string): Promise<HubSpotAuthStatus> {
+    const response = await api.get<HubSpotAuthStatus>(`/api/hubspot/auth-status/${tenantId}`);
+    return response.data;
+  },
+
+  async refreshHubSpotToken(tenantId: string, integrationId: string): Promise<{ success: boolean; message: string }> {
+    const response = await api.post<{ success: boolean; message: string }>(`/api/hubspot/refresh-token/${tenantId}/${integrationId}`);
     return response.data;
   },
 
