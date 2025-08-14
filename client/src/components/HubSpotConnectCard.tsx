@@ -74,15 +74,15 @@ const HubSpotConnectCard: React.FC = () => {
     return (
       <div className="card mt-4">
         <div className="card-header bg-success-subtle">
-          <div className="d-flex justify-content-between align-items-center">
-            <h3>HubSpot Integration</h3>
-            <div className="d-flex align-items-center">
-              <span className="text-success fw-bold me-2">Connected ✔</span>
+          <div className="d-flex justify-content-between align-items-center w-100">
+            <h3 className="mb-0">HubSpot Integration</h3>
+            <div className="d-flex align-items-center ms-auto">
               {polling && (
-                <div className="spinner-border spinner-border-sm text-success" role="status">
+                <div className="spinner-border spinner-border-sm text-success me-2" role="status">
                   <span className="visually-hidden">Refreshing...</span>
                 </div>
               )}
+              <span className="text-success fw-bold">Connected ✔</span>
             </div>
           </div>
         </div>
