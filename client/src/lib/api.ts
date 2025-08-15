@@ -24,6 +24,30 @@ export interface HubSpotAuthStatus {
   can_refresh?: boolean;
 }
 
+export interface SlackAuthStatus {
+  authenticated: boolean;
+  message: string;
+  needs_auth: boolean;
+  integration_id?: string;
+  team?: string;
+  scopes?: string[];
+  can_refresh?: boolean;
+}
+
+export interface SlackAuthUrlResponse {
+  success: boolean;
+  authorization_url: string;
+  integration_id: string;
+  tenant_id: string;
+}
+
+export interface SlackRefreshResponse {
+  success: boolean;
+  message: string;
+  integration_id: string;
+  tenant_id: string;
+}
+
 export interface JiraStatus {
   connected: boolean;
   user?: {
@@ -277,6 +301,22 @@ export const apiClient = {
 
   async refreshHubSpotToken(tenantId: string, integrationId: string): Promise<{ success: boolean; message: string }> {
     const response = await api.post<{ success: boolean; message: string }>(`/api/hubspot/refresh-token/${tenantId}/${integrationId}`);
+    return response.data;
+  },
+
+  // Slack API
+  async getSlackAuthUrl(tenantId: string): Promise<SlackAuthUrlResponse> {
+    const response = await api.get<SlackAuthUrlResponse>(`/api/slack/authorize/${tenantId}`);
+    return response.data;
+  },
+
+  async getSlackAuthStatus(tenantId: string): Promise<SlackAuthStatus> {
+    const response = await api.get<SlackAuthStatus>(`/api/slack/auth-status/${tenantId}`);
+    return response.data;
+  },
+
+  async refreshSlackToken(tenantId: string, integrationId: string): Promise<SlackRefreshResponse> {
+    const response = await api.post<SlackRefreshResponse>(`/api/slack/refresh-token/${tenantId}/${integrationId}`);
     return response.data;
   },
 
