@@ -1,0 +1,14 @@
+# Nixpacks configuration for KillTheNoise frontend
+# This tells Nixpacks how to build and deploy the React app
+
+# Use Node.js 20
+providers = ["node"]
+
+# Install dependencies
+install = "cd client && npm install"
+
+# Build the application
+build = "cd client && npm run build"
+
+# Start the application
+start = "cd client && npm start"
