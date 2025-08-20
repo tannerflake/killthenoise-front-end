@@ -161,7 +161,7 @@ export interface AiIssueReportItem {
 
 // Create API client
 export const api = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE || 'http://localhost:8000',
+  baseURL: 'https://killthenoise-back-end-production.up.railway.app',
   withCredentials: true,
 });
 
