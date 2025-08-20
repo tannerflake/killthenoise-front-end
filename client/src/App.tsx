@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard';
 import Integrations from './pages/Integrations';
 import HubSpotCallback from './pages/HubSpotCallback';
 import Header from './components/Header';
+import HubSpotForm from './pages/HubSpotForm';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/hubspot/callback" element={<HubSpotCallback />} />
+          <Route path="/hubspot/form" element={<HubSpotForm />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/integrations" element={<Integrations />} />
 

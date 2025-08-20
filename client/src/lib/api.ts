@@ -14,6 +14,84 @@ export interface HubSpotStatus {
   integration_id?: string;
 }
 
+export interface HubSpotAuthStatus {
+  authenticated: boolean;
+  message: string;
+  needs_auth: boolean;
+  integration_id?: string;
+  hub_domain?: string;
+  scopes?: string[];
+  can_refresh?: boolean;
+}
+
+export interface SlackAuthStatus {
+  authenticated: boolean;
+  message: string;
+  needs_auth: boolean;
+  integration_id?: string;
+  team?: string;
+  scopes?: string[];
+  can_refresh?: boolean;
+}
+
+export interface SlackAuthUrlResponse {
+  success: boolean;
+  authorization_url: string;
+  integration_id: string;
+  tenant_id: string;
+}
+
+export interface SlackRefreshResponse {
+  success: boolean;
+  message: string;
+  integration_id: string;
+  tenant_id: string;
+}
+
+export interface JiraStatus {
+  connected: boolean;
+  user?: {
+    account_id: string;
+    display_name: string;
+    email: string;
+  };
+  base_url?: string;
+  error?: string;
+}
+
+export interface JiraIntegration {
+  id: string;
+  tenant_id: string;
+  is_active: boolean;
+  last_synced_at?: string;
+  last_sync_status?: string;
+  sync_error_message?: string;
+  created_at: string;
+  updated_at: string;
+  connection_status: JiraStatus;
+}
+
+export interface JiraIssue {
+  id: string;
+  summary: string;
+  status: string;
+  priority: string;
+  assignee?: string;
+  issue_type: string;
+  project: string;
+  created: string;
+  updated: string;
+  url: string;
+  description?: string;
+  reporter?: string;
+}
+
+export interface JiraProject {
+  key: string;
+  name: string;
+  id: string;
+}
+
 export interface HubSpotTicket {
   id: string;
   properties: {
@@ -51,6 +129,34 @@ export interface Issue {
   jira_exists: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface AiIssueSourceBreakdown {
+  source: string; // e.g., 'hubspot', 'jira', 'slack'
+  count: number;
+}
+
+export interface AiIssueGroup {
+  id: string;
+  tenant_id: string;
+  title: string;
+  summary: string;
+  severity?: number | null;
+  status?: string | null;
+  tags?: string[];
+  frequency: number;
+  sources: AiIssueSourceBreakdown[]; // aggregated counts by source
+  updated_at: string;
+}
+
+export interface AiIssueReportItem {
+  id: string;
+  group_id: string;
+  source: string; // hubspot | jira | slack | etc
+  title: string;
+  url?: string | null;
+  external_id?: string | null;
+  created_at: string;
 }
 
 // Create API client
@@ -95,6 +201,65 @@ export const apiClient = {
     return response.data;
   },
 
+  // AI Issues API
+  async listAiIssues(tenantId: string, limit: number = 20): Promise<ApiResponse<AiIssueGroup[]>> {
+    const response = await api.get<ApiResponse<AiIssueGroup[]>>(`/api/issues/ai?tenant_id=${tenantId}&limit=${limit}`);
+    return response.data;
+  },
+
+  async getAiIssueReports(groupId: string): Promise<ApiResponse<AiIssueReportItem[]>> {
+    const response = await api.get<ApiResponse<AiIssueReportItem[]>>(`/api/issues/ai/${groupId}/reports`);
+    return response.data;
+  },
+
+  async reclusterAiIssues(tenantId: string): Promise<ApiResponse> {
+    const response = await api.post<ApiResponse>(`/api/issues/ai/recluster/${tenantId}`);
+    return response.data;
+  },
+
+  async createJiraTicketFromAiIssue(aiIssueId: string, ticketData: { title: string; description: string }): Promise<ApiResponse<{ ticket_key: string; ticket_url: string }>> {
+    const tenantId = localStorage.getItem('tenantId') || 'demo-tenant';
+    const response = await api.post<ApiResponse<{ ticket_key: string; ticket_url: string }>>(`/api/issues/ai/${aiIssueId}/create-jira-ticket?tenant_id=${tenantId}`, ticketData);
+    return response.data;
+  },
+
+  async generateJiraDescription(aiIssueGroup: { title: string; summary: string }): Promise<ApiResponse<{ description: string }>> {
+    const response = await api.post<ApiResponse<{ description: string }>>('/api/ai/generate-jira-description', {
+      title: aiIssueGroup.title,
+      summary: aiIssueGroup.summary
+    });
+    return response.data;
+  },
+
+  // Slack API
+  async createSlackIntegration(tenantId: string, token: string, team?: string): Promise<ApiResponse<{ integration_id: string }>> {
+    if (!token?.startsWith("xoxb-") || token.length < 20) {
+      throw new Error("Invalid Slack bot token");
+    }
+    const response = await api.post<ApiResponse<{ integration_id: string }>>(`/api/slack/integrations/${tenantId}`, {
+      token,
+      team: team || null
+    });
+    return response.data;
+  },
+
+  async listSlackChannels(tenantId: string): Promise<ApiResponse<{ id: string; name: string; selected: boolean }[]>> {
+    const response = await api.get<ApiResponse<{ id: string; name: string; selected: boolean }[]>>(`/api/slack/channels/${tenantId}`);
+    return response.data;
+  },
+
+  async updateSlackChannels(tenantId: string, channelIds: string[]): Promise<ApiResponse<string[]>> {
+    const response = await api.post<ApiResponse<string[]>>(`/api/slack/channels/${tenantId}`, {
+      channel_ids: channelIds
+    });
+    return response.data;
+  },
+
+  async syncSlack(tenantId: string, lookbackDays: number = 7): Promise<ApiResponse<{ ingested: number }>> {
+    const response = await api.post<ApiResponse<{ ingested: number }>>(`/api/slack/sync/${tenantId}?lookback_days=${lookbackDays}`);
+    return response.data;
+  },
+
   // HubSpot API
   async getHubSpotStatus(tenantId: string, integrationId: string): Promise<HubSpotStatus> {
     const response = await api.get<HubSpotStatus>(`/api/hubspot/status/${tenantId}/${integrationId}`);
@@ -129,6 +294,32 @@ export const apiClient = {
     return response.data;
   },
 
+  async getHubSpotAuthStatus(tenantId: string): Promise<HubSpotAuthStatus> {
+    const response = await api.get<HubSpotAuthStatus>(`/api/hubspot/auth-status/${tenantId}`);
+    return response.data;
+  },
+
+  async refreshHubSpotToken(tenantId: string, integrationId: string): Promise<{ success: boolean; message: string }> {
+    const response = await api.post<{ success: boolean; message: string }>(`/api/hubspot/refresh-token/${tenantId}/${integrationId}`);
+    return response.data;
+  },
+
+  // Slack API
+  async getSlackAuthUrl(tenantId: string): Promise<SlackAuthUrlResponse> {
+    const response = await api.get<SlackAuthUrlResponse>(`/api/slack/authorize/${tenantId}`);
+    return response.data;
+  },
+
+  async getSlackAuthStatus(tenantId: string): Promise<SlackAuthStatus> {
+    const response = await api.get<SlackAuthStatus>(`/api/slack/auth-status/${tenantId}`);
+    return response.data;
+  },
+
+  async refreshSlackToken(tenantId: string, integrationId: string): Promise<SlackRefreshResponse> {
+    const response = await api.post<SlackRefreshResponse>(`/api/slack/refresh-token/${tenantId}/${integrationId}`);
+    return response.data;
+  },
+
   // Integrations API
   async testIntegration(): Promise<ApiResponse> {
     const response = await api.post<ApiResponse>('/api/integrations/test');
@@ -138,6 +329,60 @@ export const apiClient = {
   // Jira API
   async matchJiraIssues(): Promise<ApiResponse> {
     const response = await api.post<ApiResponse>('/api/jira/match-all');
+    return response.data;
+  },
+
+  async listJiraIntegrations(tenantId: string): Promise<ApiResponse<JiraIntegration[]>> {
+    const response = await api.get<ApiResponse<JiraIntegration[]>>(`/api/jira/integrations/${tenantId}`);
+    return response.data;
+  },
+
+  async createJiraIntegration(tenantId: string, credentials: { access_token: string; base_url: string; email: string }): Promise<{success: boolean, integration_id?: string, tenant_id?: string, message?: string, detail?: any}> {
+    const response = await api.post<{success: boolean, integration_id?: string, tenant_id?: string, message?: string, detail?: any}>(`/api/jira/integrations/${tenantId}`, credentials);
+    return response.data;
+  },
+
+  async getJiraStatus(tenantId: string, integrationId: string): Promise<JiraStatus> {
+    const response = await api.get<JiraStatus>(`/api/jira/status/${tenantId}/${integrationId}`);
+    return response.data;
+  },
+
+  async listJiraIssues(tenantId: string, integrationId: string, limit?: number, jql?: string): Promise<{success: boolean, issues: JiraIssue[], total: number, max_results: number}> {
+    const params = new URLSearchParams();
+    if (limit) params.append('limit', limit.toString());
+    if (jql) params.append('jql', jql);
+    
+    const response = await api.get<{success: boolean, issues: JiraIssue[], total: number, max_results: number}>(`/api/jira/issues/${tenantId}/${integrationId}?${params}`);
+    return response.data;
+  },
+
+  async getJiraIssue(tenantId: string, integrationId: string, issueKey: string): Promise<{success: boolean, issue: JiraIssue}> {
+    const response = await api.get<{success: boolean, issue: JiraIssue}>(`/api/jira/issues/${tenantId}/${integrationId}/${issueKey}`);
+    return response.data;
+  },
+
+  async createJiraIssue(tenantId: string, integrationId: string, projectKey: string, summary: string, description: string, issueType: string): Promise<{success: boolean, issue_key: string, issue_id: string, url: string}> {
+    const response = await api.post<{success: boolean, issue_key: string, issue_id: string, url: string}>(`/api/jira/issues/${tenantId}/${integrationId}`, {
+      project_key: projectKey,
+      summary: summary,
+      description: description,
+      issue_type: issueType
+    });
+    return response.data;
+  },
+
+  async updateJiraIssue(tenantId: string, integrationId: string, issueKey: string, updates: any): Promise<{success: boolean}> {
+    const response = await api.put<{success: boolean}>(`/api/jira/issues/${tenantId}/${integrationId}/${issueKey}`, updates);
+    return response.data;
+  },
+
+  async listJiraProjects(tenantId: string, integrationId: string): Promise<{success: boolean, projects: JiraProject[]}> {
+    const response = await api.get<{success: boolean, projects: JiraProject[]}>(`/api/jira/projects/${tenantId}/${integrationId}`);
+    return response.data;
+  },
+
+  async syncJira(tenantId: string, integrationId: string, syncType: 'full' | 'incremental' = 'full'): Promise<ApiResponse> {
+    const response = await api.post<ApiResponse>(`/api/jira/sync/${tenantId}/${integrationId}?sync_type=${syncType}`);
     return response.data;
   },
 

@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
-import { useHubSpotAuth } from '../hooks/useHubSpotAuth';
+import { useSlackAuth } from '../hooks/useSlackAuth';
 import { apiClient } from '../lib/api';
 import { useTenant } from '../context/TenantContext';
 
-const HubSpotConnectCard: React.FC = () => {
+const SlackConnectCard: React.FC = () => {
   const { tenantId } = useTenant();
-  const { authStatus, loading, polling, error, checkAuth, refreshToken, startPolling, stopPolling } = useHubSpotAuth({ tenantId });
+  const { authStatus, loading, polling, error, checkAuth, refreshToken, startPolling, stopPolling } = useSlackAuth({ tenantId });
   const [connecting, setConnecting] = useState(false);
 
   const handleConnect = async () => {
     try {
       setConnecting(true);
-      const result = await apiClient.getHubSpotAuthUrl(tenantId);
+      const result = await apiClient.getSlackAuthUrl(tenantId);
       
       if (result.success) {
         // Open OAuth URL in new window
@@ -48,7 +48,7 @@ const HubSpotConnectCard: React.FC = () => {
             <div className="spinner-border spinner-border-sm me-2" role="status">
               <span className="visually-hidden">Loading...</span>
             </div>
-            <span>Checking HubSpot connection...</span>
+            <span>Checking Slack connection...</span>
           </div>
         </div>
       </div>
@@ -75,7 +75,7 @@ const HubSpotConnectCard: React.FC = () => {
       <div className="card mt-4">
         <div className="card-header bg-success-subtle">
           <div className="d-flex justify-content-between align-items-center w-100">
-            <h3 className="mb-0">HubSpot Integration</h3>
+            <h3 className="mb-0">Slack Integration</h3>
             <div className="d-flex align-items-center ms-auto">
               {polling && (
                 <div className="spinner-border spinner-border-sm text-success me-2" role="status">
@@ -89,9 +89,9 @@ const HubSpotConnectCard: React.FC = () => {
         <div className="card-body">
           <div className="row">
             <div className="col-md-8">
-              {authStatus.hub_domain && (
+              {authStatus.team && (
                 <div className="mb-2">
-                  <strong>Hub Domain:</strong> {authStatus.hub_domain}
+                  <strong>Workspace:</strong> {authStatus.team}
                 </div>
               )}
               {authStatus.scopes && authStatus.scopes.length > 0 && (
@@ -123,7 +123,7 @@ const HubSpotConnectCard: React.FC = () => {
       <div className="card mt-4">
         <div className="card-header bg-warning-subtle">
           <div className="d-flex justify-content-between align-items-center">
-            <h3>HubSpot Integration</h3>
+            <h3>Slack Integration</h3>
             <span className="text-warning fw-bold">⚠️ Token Expired</span>
           </div>
         </div>
@@ -131,7 +131,7 @@ const HubSpotConnectCard: React.FC = () => {
           <div className="row">
             <div className="col-md-8">
               <p className="text-muted mb-0">
-                Your HubSpot token has expired, but it can be refreshed automatically.
+                Your Slack token has expired, but it can be refreshed automatically.
               </p>
             </div>
             <div className="col-md-4 text-end">
@@ -153,7 +153,7 @@ const HubSpotConnectCard: React.FC = () => {
     <div className="card mt-4">
       <div className="card-header">
         <div className="d-flex justify-content-between align-items-center">
-          <h3>HubSpot Integration</h3>
+          <h3>Slack Integration</h3>
           <div className="d-flex align-items-center">
             <span className="text-muted me-2">🔗</span>
             {polling && (
@@ -168,7 +168,7 @@ const HubSpotConnectCard: React.FC = () => {
         <div className="row">
           <div className="col-md-8">
             <p className="text-muted mb-0">
-              Connect your HubSpot account to sync tickets and issues.
+              Connect your Slack workspace to sync messages and channels.
             </p>
             {polling && (
               <div className="text-muted small mt-2">
@@ -183,7 +183,7 @@ const HubSpotConnectCard: React.FC = () => {
               onClick={handleConnect} 
               disabled={connecting || polling}
             >
-              {connecting ? 'Connecting...' : 'Connect to HubSpot'}
+              {connecting ? 'Connecting...' : 'Connect to Slack'}
             </button>
           </div>
         </div>
@@ -192,4 +192,4 @@ const HubSpotConnectCard: React.FC = () => {
   );
 };
 
-export default HubSpotConnectCard; 
+export default SlackConnectCard;
