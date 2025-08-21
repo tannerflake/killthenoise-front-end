@@ -84,7 +84,7 @@ const Integrations: React.FC = () => {
       console.log('Fetching Jira issues for integration:', integrationId);
       console.log('Using tenant ID:', tenantId);
       
-      const url = `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000'}/api/jira/issues/${tenantId}/${integrationId}`;
+      const url = `${process.env.REACT_APP_API_BASE_URL || 'https://killthenoise-back-end-production.up.railway.app'}/api/jira/issues/${tenantId}/${integrationId}`;
       console.log('Making request to:', url);
       
       const response = await fetch(url);
@@ -117,7 +117,7 @@ const Integrations: React.FC = () => {
       console.log('Checking Jira connection status for:', integrationId);
       
       const response = await fetch(
-        `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000'}/api/jira/status/${tenantId}/${integrationId}`
+        `${process.env.REACT_APP_API_BASE_URL || 'https://killthenoise-back-end-production.up.railway.app'}/api/jira/status/${tenantId}/${integrationId}`
       );
       const data = await response.json();
 
@@ -149,7 +149,7 @@ const Integrations: React.FC = () => {
     const checkHubSpotStatus = async () => {
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000'}/api/hubspot/status/${tenantId}/${integrationId}`
+          `${process.env.REACT_APP_API_BASE_URL || 'https://killthenoise-back-end-production.up.railway.app'}/api/hubspot/status/${tenantId}/${integrationId}`
         );
         const data = await response.json();
 
@@ -262,7 +262,7 @@ const Integrations: React.FC = () => {
                       const loadJiraIntegration = async () => {
                         try {
                           const response = await fetch(
-                            `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000'}/api/jira/integrations/${tenantId}`
+                            `${process.env.REACT_APP_API_BASE_URL || 'https://killthenoise-back-end-production.up.railway.app'}/api/jira/integrations/${tenantId}`
                           );
                           const data = await response.json();
                           console.log('Backend integrations:', data);
