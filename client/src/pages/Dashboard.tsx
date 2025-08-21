@@ -1,18 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import AiIssuesTable from '../components/AiIssuesTable';
-import { testBackendConnection } from '../utils/testBackendConnection';
 
 const Dashboard: React.FC = () => {
-  const [debugResult, setDebugResult] = useState<any>(null);
-  const [testing, setTesting] = useState(false);
-
-  const handleTestConnection = async () => {
-    setTesting(true);
-    const result = await testBackendConnection();
-    setDebugResult(result);
-    setTesting(false);
-  };
 
   return (
     <div className="dashboard">
@@ -21,21 +11,6 @@ const Dashboard: React.FC = () => {
         <div className="dashboard-header mb-4">
           <div>
             <h1 className="dashboard-main-title">Product Issue Dashboard</h1>
-          </div>
-          <div className="mt-3">
-            <button 
-              className="btn btn-outline-secondary btn-sm"
-              onClick={handleTestConnection}
-              disabled={testing}
-            >
-              {testing ? 'Testing...' : 'Debug Backend Connection'}
-            </button>
-            {debugResult && (
-              <div className="mt-2 p-3 bg-light rounded">
-                <h6>Debug Result:</h6>
-                <pre className="small">{JSON.stringify(debugResult, null, 2)}</pre>
-              </div>
-            )}
           </div>
         </div>
       </div>
