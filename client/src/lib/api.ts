@@ -122,7 +122,9 @@ export interface Issue {
   severity: number;
   frequency: number;
   status: string;
-  type: 'bug' | 'feature';
+  type: 'feature_request' | 'feature' | 'bug';
+  ai_type_confidence?: number;
+  ai_type_reasoning?: string;
   tags?: string[];
   jira_issue_key?: string;
   jira_status?: string;
@@ -143,6 +145,9 @@ export interface AiIssueGroup {
   summary: string;
   severity?: number | null;
   status?: string | null;
+  type?: 'feature_request' | 'feature' | 'bug';
+  ai_type_confidence?: number;
+  ai_type_reasoning?: string;
   tags?: string[];
   frequency: number;
   sources: AiIssueSourceBreakdown[]; // aggregated counts by source
@@ -167,7 +172,7 @@ export const api = axios.create({
 
 // Attach tenant header to every request
 api.interceptors.request.use((config) => {
-  const tenantId = localStorage.getItem('tenantId') || 'demo-tenant';
+  const tenantId = localStorage.getItem('tenantId') || '550e8400-e29b-41d4-a716-446655440000';
   if (!config.headers) {
     config.headers = {} as any;
   }
@@ -218,7 +223,7 @@ export const apiClient = {
   },
 
   async createJiraTicketFromAiIssue(aiIssueId: string, ticketData: { title: string; description: string }): Promise<ApiResponse<{ ticket_key: string; ticket_url: string }>> {
-    const tenantId = localStorage.getItem('tenantId') || 'demo-tenant';
+    const tenantId = localStorage.getItem('tenantId') || '550e8400-e29b-41d4-a716-446655440000';
     const response = await api.post<ApiResponse<{ ticket_key: string; ticket_url: string }>>(`/api/issues/ai/${aiIssueId}/create-jira-ticket?tenant_id=${tenantId}`, ticketData);
     return response.data;
   },

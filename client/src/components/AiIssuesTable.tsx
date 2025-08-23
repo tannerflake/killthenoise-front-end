@@ -3,6 +3,8 @@ import { apiClient, AiIssueGroup, AiIssueReportItem } from '../lib/api';
 import { Badge, Button, Card, CardContent } from './ui';
 import { useTenant } from '../context/TenantContext';
 import JiraTicketCreationModal from './JiraTicketCreationModal';
+import TypeBadge from './TypeBadge';
+import TypeFilter from './TypeFilter';
 
 interface AiIssuesTableProps {
   limit?: number;
@@ -138,15 +140,49 @@ const AiIssuesTable: React.FC<AiIssuesTableProps> = ({ limit = 20 }) => {
   const [reports, setReports] = useState<Record<string, { loading: boolean; error: string | null; items: AiIssueReportItem[] }>>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedGroupForTicket, setSelectedGroupForTicket] = useState<AiIssueGroup | null>(null);
+  const [selectedType, setSelectedType] = useState('all');
 
   const fetchGroups = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await apiClient.listAiIssues(tenantId, limit);
-      setGroups(res.data || []);
+      
+      // Try to fetch AI issues first
+      try {
+        const res = await apiClient.listAiIssues(tenantId, limit);
+        if (res.success && res.data && res.data.length > 0) {
+          setGroups(res.data || []);
+          return;
+        }
+      } catch (aiErr: any) {
+        console.log('AI issues not available, falling back to regular issues');
+      }
+      
+      // Fallback to regular issues if AI issues fail or are empty
+      const regularIssuesRes = await apiClient.listIssues(undefined, limit);
+      if (regularIssuesRes.success && regularIssuesRes.data) {
+        // Transform regular issues to match AI issue group format
+        const transformedGroups = regularIssuesRes.data.map((issue, index) => ({
+          id: `regular-${issue.id}`,
+          tenant_id: tenantId,
+          title: issue.title,
+          summary: issue.description || issue.title,
+          severity: issue.severity,
+          status: issue.status,
+          type: issue.type,
+          ai_type_confidence: issue.ai_type_confidence,
+          ai_type_reasoning: issue.ai_type_reasoning,
+          tags: issue.tags,
+          frequency: 1,
+          sources: [{ source: issue.source, count: 1 }],
+          updated_at: issue.updated_at || issue.created_at
+        }));
+        setGroups(transformedGroups);
+      } else {
+        setError('Failed to load issues');
+      }
     } catch (err: any) {
-      setError(err?.message || 'Failed to load AI issues');
+      setError(err?.message || 'Failed to load issues');
     } finally {
       setLoading(false);
     }
@@ -203,6 +239,23 @@ const AiIssuesTable: React.FC<AiIssuesTableProps> = ({ limit = 20 }) => {
     }
   };
 
+  // Filter groups by type
+  const filteredGroups = selectedType === 'all' 
+    ? groups 
+    : groups.filter(group => {
+        if (selectedType === 'feature_request') {
+          return group.type === 'feature_request' || group.type === 'feature';
+        }
+        return group.type === selectedType;
+      });
+
+  // Calculate type statistics
+  const typeStats = {
+    feature_request: groups.filter(g => g.type === 'feature_request' || g.type === 'feature').length,
+    bug: groups.filter(g => g.type === 'bug').length,
+    total: groups.length
+  };
+
   if (loading) {
     return (
       <Card>
@@ -243,78 +296,120 @@ const AiIssuesTable: React.FC<AiIssuesTableProps> = ({ limit = 20 }) => {
   };
 
   return (
-    <div className="table-responsive">
-      <table className="table" style={{ width: '100%' }}>
+    <div>
+      {/* Type Filter and Statistics */}
+      <div className="mb-4">
+        <TypeFilter 
+          selectedType={selectedType} 
+          onTypeChange={setSelectedType} 
+        />
+        {typeStats.total > 0 && (
+          <div className="flex gap-4 text-sm text-gray-600 mb-3">
+            <span>✨ {typeStats.feature_request} Feature Requests</span>
+            <span>🐛 {typeStats.bug} Bugs</span>
+            <span>📊 {typeStats.total} Total Issues</span>
+            {groups.length > 0 && groups[0].id.startsWith('regular-') && (
+              <span className="text-blue-600">📋 Showing Regular Issues (AI clustering not available)</span>
+            )}
+          </div>
+        )}
+      </div>
+      
+      <div className="table-responsive">
+        <table className="table" style={{ width: '100%' }}>
         <colgroup>
-          <col style={{ width: '22%' }} />
-          <col style={{ width: '56%' }} />
-          <col style={{ width: '10%' }} />
+          <col style={{ width: '18%' }} />
+          <col style={{ width: '45%' }} />
           <col style={{ width: '12%' }} />
-          <col style={{ width: '8%' }} />
+          <col style={{ width: '10%' }} />
+          <col style={{ width: '10%' }} />
+          <col style={{ width: '5%' }} />
         </colgroup>
         <thead>
           <tr>
             <th>Issue</th>
             <th>Summary</th>
+            <th>Type</th>
             <th>Severity</th>
             <th>Jira Ticket</th>
             <th>Reports</th>
           </tr>
         </thead>
         <tbody>
-          {groups.map(group => (
-            <React.Fragment key={group.id}>
-              <tr>
-                <td><strong>{group.title}</strong></td>
-                <td className="text-secondary text-sm">{truncate(group.summary, 160)}</td>
-                <td>{severityBadge(group.severity)}</td>
-                <td>{renderStatusColumn(group, reports[group.id]?.items, handleCreateTicket)}</td>
-                <td>
-                  <Button className="btn btn-sm" onClick={() => handleToggleReports(group.id)}>
-                    {group.frequency}
-                  </Button>
-                </td>
-              </tr>
-              {expandedGroupId === group.id && (
+          {filteredGroups.length === 0 ? (
+            <tr>
+              <td colSpan={6} className="text-center py-8 text-gray-500">
+                <p>No issues found{selectedType !== 'all' ? ` for ${selectedType === 'feature_request' ? 'feature requests' : 'bugs'}` : ''}.</p>
+              </td>
+            </tr>
+          ) : (
+            filteredGroups.map(group => (
+              <React.Fragment key={group.id}>
                 <tr>
-                  <td colSpan={5}>
-                    <div className="p-3 bg-light rounded">
-                      {(reports[group.id]?.loading) && <div className="text-secondary">Loading reports…</div>}
-                      {(reports[group.id]?.error) && <div className="alert alert-danger">{reports[group.id]?.error}</div>}
-                      {!reports[group.id]?.loading && !reports[group.id]?.error && (
-                        <ul className="list-unstyled mb-0">
-                          {(reports[group.id]?.items || []).map(item => (
-                            <li key={item.id} className="mb-2 d-flex gap-2 align-start">
-                              <span>{sourceIcon(item.source)}</span>
-                              <div>
-                                {item.url ? (
-                                  <a href={item.url} target="_blank" rel="noreferrer" className="fw-semibold">
-                                    {item.title}
-                                  </a>
-                                ) : (
-                                  <span className="fw-semibold">{item.title}</span>
-                                )}
-                                <div className="text-xs text-secondary">
-                                  <span className="mr-2 text-capitalize">{item.source}</span>
-                                  {item.external_id && <span className="mr-2">#{item.external_id}</span>}
-                                  <span>{new Date(item.created_at).toLocaleString()}</span>
-                                </div>
-                              </div>
-                            </li>
-                          ))}
-                          {(!reports[group.id] || reports[group.id]?.items?.length === 0) && (
-                            <li className="text-secondary">No contributing reports found.</li>
-                          )}
-                        </ul>
-                      )}
-                    </div>
+                  <td><strong>{group.title}</strong></td>
+                  <td className="text-secondary text-sm">{truncate(group.summary, 160)}</td>
+                  <td>
+                    {group.type ? (
+                      <TypeBadge 
+                        type={group.type}
+                        confidence={group.ai_type_confidence}
+                        reasoning={group.ai_type_reasoning}
+                        showConfidence={false}
+                      />
+                    ) : (
+                      <Badge variant="secondary">Unknown</Badge>
+                    )}
+                  </td>
+                  <td>{severityBadge(group.severity)}</td>
+                  <td>{renderStatusColumn(group, reports[group.id]?.items, handleCreateTicket)}</td>
+                  <td>
+                    <Button className="btn btn-sm" onClick={() => handleToggleReports(group.id)}>
+                      {group.frequency}
+                    </Button>
                   </td>
                 </tr>
-              )}
-            </React.Fragment>
-          ))}
+                {expandedGroupId === group.id && (
+                  <tr>
+                    <td colSpan={6}>
+                      <div className="p-3 bg-light rounded">
+                        {(reports[group.id]?.loading) && <div className="text-secondary">Loading reports…</div>}
+                        {(reports[group.id]?.error) && <div className="alert alert-danger">{reports[group.id]?.error}</div>}
+                        {!reports[group.id]?.loading && !reports[group.id]?.error && (
+                          <ul className="list-unstyled mb-0">
+                            {(reports[group.id]?.items || []).map(item => (
+                              <li key={item.id} className="mb-2 d-flex gap-2 align-start">
+                                <span>{sourceIcon(item.source)}</span>
+                                <div>
+                                  {item.url ? (
+                                    <a href={item.url} target="_blank" rel="noreferrer" className="fw-semibold">
+                                      {item.title}
+                                    </a>
+                                  ) : (
+                                    <span className="fw-semibold">{item.title}</span>
+                                  )}
+                                  <div className="text-xs text-secondary">
+                                    <span className="mr-2 text-capitalize">{item.source}</span>
+                                    {item.external_id && <span className="mr-2">#{item.external_id}</span>}
+                                    <span>{new Date(item.created_at).toLocaleString()}</span>
+                                  </div>
+                                </div>
+                              </li>
+                            ))}
+                            {(!reports[group.id] || reports[group.id]?.items?.length === 0) && (
+                              <li className="text-secondary">No contributing reports found.</li>
+                            )}
+                          </ul>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            ))
+          )}
         </tbody>
       </table>
+      </div>
       
       {/* Jira Ticket Creation Modal */}
       <JiraTicketCreationModal

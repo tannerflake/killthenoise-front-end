@@ -1,5 +1,4 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import AiIssuesTable from '../components/AiIssuesTable';
 
 const Dashboard: React.FC = () => {
@@ -26,8 +25,6 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Removed inline HubSpot form link; now in header */}
     </div>
   );
 };
