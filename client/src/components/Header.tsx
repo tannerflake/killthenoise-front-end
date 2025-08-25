@@ -19,8 +19,8 @@ const Header: React.FC = () => {
                 </Link>
               </li>
               <li className="nav-item">
-                <Link to="/integrations" className="nav-link">
-                  Integrations
+                <Link to="/settings" className="nav-link">
+                  Settings
                 </Link>
               </li>
               <li className="nav-item">

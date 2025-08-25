@@ -67,6 +67,21 @@
   }
 }
 
+/* Table sorting styles */
+.sortable-header {
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.sortable-header:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.sortable-header.active {
+  background-color: rgba(59, 130, 246, 0.1);
+  font-weight: 600;
+}
+
 /* Reset and base styles */
 * {
   margin: 0;

@@ -22,20 +22,20 @@ const TypeBadge: React.FC<TypeBadgeProps> = ({
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center justify-center gap-2">
       <span 
         className={`
-          inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+          inline-flex items-center justify-center px-3 py-1.5 rounded-full text-xs font-medium min-w-[60px]
           ${isFeatureRequest 
             ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
             : 'bg-red-100 text-red-800 border border-red-200'
           }
         `}
         role="status"
-        aria-label={`Issue type: ${isFeatureRequest ? 'Feature Request' : 'Bug'}`}
+        aria-label={`Issue type: ${isFeatureRequest ? 'Feature Request (FR)' : 'Bug'}`}
       >
         {isFeatureRequest ? '✨' : '🐛'}
-        <span className="ml-1">{isFeatureRequest ? 'Feature Request' : 'Bug'}</span>
+        <span className="ml-1">{isFeatureRequest ? 'FR' : 'Bug'}</span>
       </span>
       
       {showConfidence && confidence !== undefined && (
