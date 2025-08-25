@@ -1,33 +1,24 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
 import AiIssuesTable from '../components/AiIssuesTable';
+import TeamTabs from '../components/TeamTabs';
 
 const Dashboard: React.FC = () => {
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
 
   return (
     <div className="dashboard">
-      {/* Header (constrained) */}
-      <div className="container">
-        <div className="dashboard-header mb-4">
-          <div>
-            <h1 className="dashboard-main-title">Product Issue Dashboard</h1>
-          </div>
-        </div>
-      </div>
-
       {/* AI Issues List (full-bleed with 50px margins) */}
       <div className="ai-issues-bleed">
         <div className="card mt-4">
-          <div className="card-header">
-            <h3 className="mb-0">AI Issues</h3>
-          </div>
           <div className="card-body">
-            <AiIssuesTable limit={20} />
+            <TeamTabs 
+              selectedTeam={selectedTeam}
+              onTeamChange={setSelectedTeam}
+            />
+            <AiIssuesTable limit={20} selectedTeam={selectedTeam} />
           </div>
         </div>
       </div>
-
-      {/* Removed inline HubSpot form link; now in header */}
     </div>
   );
 };

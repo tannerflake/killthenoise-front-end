@@ -115,18 +115,19 @@ export interface TransformedHubSpotTicket {
 }
 
 export interface Issue {
-  id: number;
-  title: string;
-  description?: string;
-  source: string;
-  severity: number;
-  frequency: number;
+  id: string;
+  title: string;           // AI-generated title
+  description: string;     // AI-generated summary
+  severity: number;        // 0-100 scale
+  frequency: number;       // How many similar issues
+  reports_count: number;   // Individual tickets in this group
+  sources: Array<{source: string, count: number}>;
   status: string;
-  type: 'bug' | 'feature';
-  tags?: string[];
-  jira_issue_key?: string;
-  jira_status?: string;
-  jira_exists: boolean;
+  type: 'feature_request' | 'feature' | 'bug';
+  ai_type_confidence?: number;
+  ai_type_reasoning?: string;
+  tags: string[];
+  team_id?: string | null; // Team assignment
   created_at: string;
   updated_at: string;
 }
@@ -141,11 +142,15 @@ export interface AiIssueGroup {
   tenant_id: string;
   title: string;
   summary: string;
-  severity?: number | null;
+  severity?: number | null; // 0-100 scale
   status?: string | null;
+  type?: 'feature_request' | 'feature' | 'bug';
+  ai_type_confidence?: number;
+  ai_type_reasoning?: string;
   tags?: string[];
   frequency: number;
   sources: AiIssueSourceBreakdown[]; // aggregated counts by source
+  team_id?: string | null; // Team assignment
   updated_at: string;
 }
 
@@ -159,6 +164,18 @@ export interface AiIssueReportItem {
   created_at: string;
 }
 
+export interface Team {
+  id: string;
+  tenant_id: string;
+  name: string;
+  description: string;
+  assignment_criteria: string; // natural language description of what goes to this team
+  is_default_team: boolean;
+  display_order?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // Create API client
 export const api = axios.create({
   baseURL: process.env.REACT_APP_API_BASE || 'https://killthenoise-back-end-production.up.railway.app',
@@ -167,7 +184,7 @@ export const api = axios.create({
 
 // Attach tenant header to every request
 api.interceptors.request.use((config) => {
-  const tenantId = localStorage.getItem('tenantId') || 'demo-tenant';
+  const tenantId = localStorage.getItem('tenantId') || '550e8400-e29b-41d4-a716-446655440000';
   if (!config.headers) {
     config.headers = {} as any;
   }
@@ -186,7 +203,7 @@ api.interceptors.response.use(
 
 // API methods matching backend structure
 export const apiClient = {
-  // Issues API
+  // AI-Grouped Issues API (main issues endpoint now returns AI-grouped data)
   async getTopIssues(limit: number = 10): Promise<ApiResponse<Issue[]>> {
     const response = await api.get<ApiResponse<Issue[]>>(`/api/issues/top?limit=${limit}`);
     return response.data;
@@ -217,8 +234,13 @@ export const apiClient = {
     return response.data;
   },
 
+  async cleanupDuplicateIssues(tenantId: string): Promise<ApiResponse> {
+    const response = await api.post<ApiResponse>(`/api/issues/ai/cleanup-duplicates/${tenantId}`);
+    return response.data;
+  },
+
   async createJiraTicketFromAiIssue(aiIssueId: string, ticketData: { title: string; description: string }): Promise<ApiResponse<{ ticket_key: string; ticket_url: string }>> {
-    const tenantId = localStorage.getItem('tenantId') || 'demo-tenant';
+    const tenantId = localStorage.getItem('tenantId') || '550e8400-e29b-41d4-a716-446655440000';
     const response = await api.post<ApiResponse<{ ticket_key: string; ticket_url: string }>>(`/api/issues/ai/${aiIssueId}/create-jira-ticket?tenant_id=${tenantId}`, ticketData);
     return response.data;
   },
@@ -389,6 +411,65 @@ export const apiClient = {
   // Analytics API
   async getAnalytics(data: any): Promise<ApiResponse> {
     const response = await api.post<ApiResponse>('/api/analytics/analyze', data);
+    return response.data;
+  },
+
+  // Settings API
+  async getGeneralSettings(tenantId: string): Promise<ApiResponse<{
+    grouping_instructions?: string;
+    type_classification_instructions?: string;
+    severity_calculation_instructions?: string;
+  }>> {
+    const response = await api.get<ApiResponse<{
+      grouping_instructions?: string;
+      type_classification_instructions?: string;
+      severity_calculation_instructions?: string;
+    }>>(`/api/settings/general/${tenantId}`);
+    return response.data;
+  },
+
+  async updateGeneralSettings(tenantId: string, settings: {
+    grouping_instructions?: string;
+    type_classification_instructions?: string;
+    severity_calculation_instructions?: string;
+  }): Promise<ApiResponse> {
+    const response = await api.put<ApiResponse>(`/api/settings/general/${tenantId}`, settings);
+    return response.data;
+  },
+
+  // Teams API
+  async listTeams(tenantId: string): Promise<ApiResponse<Team[]>> {
+    const response = await api.get<ApiResponse<Team[]>>(`/api/teams/${tenantId}`);
+    return response.data;
+  },
+
+  async createTeam(tenantId: string, teamData: {
+    name: string;
+    description: string;
+    assignment_criteria: string;
+    is_default_team?: boolean;
+  }): Promise<ApiResponse<Team>> {
+    const response = await api.post<ApiResponse<Team>>(`/api/teams/${tenantId}`, teamData);
+    return response.data;
+  },
+
+  async updateTeam(tenantId: string, teamId: string, teamData: {
+    name?: string;
+    description?: string;
+    assignment_criteria?: string;
+    is_default_team?: boolean;
+  }): Promise<ApiResponse<Team>> {
+    const response = await api.put<ApiResponse<Team>>(`/api/teams/${tenantId}/${teamId}`, teamData);
+    return response.data;
+  },
+
+  async deleteTeam(tenantId: string, teamId: string): Promise<ApiResponse> {
+    const response = await api.delete<ApiResponse>(`/api/teams/${tenantId}/${teamId}`);
+    return response.data;
+  },
+
+  async setDefaultTeam(tenantId: string, teamId: string): Promise<ApiResponse> {
+    const response = await api.post<ApiResponse>(`/api/teams/${tenantId}/${teamId}/set-default`);
     return response.data;
   }
 }; 
