@@ -10,6 +10,7 @@ const SlackConnectCard: React.FC = () => {
   const [connectError, setConnectError] = useState<string | null>(null);
 
   const handleConnect = async () => {
+    console.log('🚀 handleConnect called');
     try {
       setConnecting(true);
       setConnectError(null); // Clear any previous errors
@@ -52,10 +53,12 @@ const SlackConnectCard: React.FC = () => {
       console.error('Failed to start OAuth flow:', err);
       console.error('Error response data:', err.response?.data);
       console.error('Error status:', err.response?.status);
+      console.log('🔄 Setting connecting to false and error state...');
       setConnecting(false);
       
       // Show user-friendly error message
       const errorMessage = err.response?.data?.detail || err.message || 'Failed to start Slack authorization';
+      console.log('📝 Setting error message:', errorMessage);
       setConnectError(errorMessage);
     }
   };
