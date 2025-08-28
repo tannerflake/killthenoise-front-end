@@ -241,30 +241,11 @@ const SlackConnectCard: React.FC = () => {
             </div>
             <div className="col-md-4 text-end">
               <button 
-                className="btn btn-outline-danger btn-sm me-2" 
+                className="btn btn-outline-danger btn-sm" 
                 onClick={handleDisconnect}
                 disabled={connecting || loading}
               >
                 Disconnect
-              </button>
-              <button 
-                className="btn btn-outline-primary btn-sm me-2" 
-                onClick={handleRefresh} 
-                disabled={connecting || loading}
-              >
-                Refresh Token
-              </button>
-              <button 
-                className="btn btn-outline-secondary btn-sm me-2" 
-                onClick={handleDebugCheck}
-              >
-                Debug Status
-              </button>
-              <button 
-                className="btn btn-outline-info btn-sm" 
-                onClick={handleManualRefresh}
-              >
-                Refresh Status
               </button>
             </div>
           </div>
@@ -284,29 +265,23 @@ const SlackConnectCard: React.FC = () => {
           </div>
         </div>
         <div className="card-body">
-          <div className="alert alert-danger">
-            <strong>Slack token has expired and cannot be refreshed.</strong><br />
-            You need to reconnect your Slack integration.
+          <div className="alert alert-warning">
+            <strong>Slack connection needs to be renewed.</strong><br />
+            Please disconnect and reconnect to restore the integration.
           </div>
           <div className="d-flex justify-content-between align-items-center">
             <div>
               <p className="text-muted mb-0">
-                Your Slack integration token has expired and cannot be automatically refreshed.
+                Your Slack connection has expired and needs to be renewed.
               </p>
             </div>
             <div>
               <button 
-                className="btn btn-danger me-2" 
+                className="btn btn-danger" 
                 onClick={handleDisconnect}
                 disabled={connecting || loading}
               >
                 Disconnect & Reconnect
-              </button>
-              <button 
-                className="btn btn-outline-secondary btn-sm" 
-                onClick={handleDebugCheck}
-              >
-                Debug Status
               </button>
             </div>
           </div>
@@ -364,10 +339,10 @@ const SlackConnectCard: React.FC = () => {
       <div className="card-body">
         {connectError && (
           <div className="alert alert-danger mb-3">
-            <strong>Connection Error:</strong> {connectError}
+            <strong>Connection Failed:</strong> Unable to connect to Slack at this time.
             <br />
             <small className="text-muted">
-              This appears to be a backend issue. Please contact the backend team.
+              Please try again in a few moments or contact support if the issue persists.
             </small>
           </div>
         )}
@@ -384,18 +359,6 @@ const SlackConnectCard: React.FC = () => {
             )}
           </div>
           <div className="col-md-4 text-end">
-            <button 
-              className="btn btn-outline-secondary btn-sm me-2" 
-              onClick={handleDebugCheck}
-            >
-              Debug Status
-            </button>
-            <button 
-              className="btn btn-outline-info btn-sm me-2" 
-              onClick={handleManualRefresh}
-            >
-              Refresh Status
-            </button>
             <button 
               className="btn btn-primary" 
               onClick={handleConnect} 
