@@ -15,9 +15,17 @@ const SlackIntegrationStatus: React.FC<SlackIntegrationStatusProps> = ({
   const [channelCount, setChannelCount] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
 
   useEffect(() => {
     checkStatus();
+    
+    // Set up periodic status check every 30 seconds to keep status current
+    const interval = setInterval(() => {
+      checkStatus();
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, [tenantId]);
 
   const checkStatus = async () => {
@@ -25,16 +33,29 @@ const SlackIntegrationStatus: React.FC<SlackIntegrationStatusProps> = ({
       setStatus('loading');
       setError(null);
       
-      // Try to list channels to check if integration exists and is working
-      const response = await apiClient.listSlackChannels(tenantId);
+      // Use the auth status endpoint to check if Slack is connected
+      const authStatus = await apiClient.getSlackAuthStatus(tenantId);
       
-      if (response.success && response.data) {
+      if (authStatus.authenticated) {
         setStatus('connected');
-        setChannelCount(response.data.filter(c => c.selected).length);
+        // Try to get channel count if authenticated
+        try {
+          const channelsResponse = await apiClient.listSlackChannels(tenantId);
+          if (channelsResponse.success && channelsResponse.data) {
+            setChannelCount(channelsResponse.data.filter(c => c.selected).length);
+          }
+        } catch (channelErr) {
+          // Channel count is optional, don't fail the status check
+          console.warn('Could not fetch channel count:', channelErr);
+        }
+      } else if (authStatus.needs_auth) {
+        setStatus('not_found');
       } else {
         setStatus('error');
-        setError(response.message || 'Failed to check Slack status');
+        setError(authStatus.message || 'Slack not properly authenticated');
       }
+      
+      setLastChecked(new Date());
     } catch (err: any) {
       if (err?.message?.includes('404') || err?.message?.includes('not found')) {
         setStatus('not_found');
@@ -42,6 +63,7 @@ const SlackIntegrationStatus: React.FC<SlackIntegrationStatusProps> = ({
         setStatus('error');
         setError(err?.message || 'Failed to check Slack connection');
       }
+      setLastChecked(new Date());
     }
   };
 
@@ -72,7 +94,7 @@ const SlackIntegrationStatus: React.FC<SlackIntegrationStatusProps> = ({
       case 'loading':
         return 'Checking connection...';
       case 'connected':
-        return `Connected • ${channelCount} channels selected`;
+        return channelCount > 0 ? `Connected • ${channelCount} channels selected` : 'Connected';
       case 'error':
         return 'Connection error';
       case 'not_found':
@@ -140,6 +162,14 @@ const SlackIntegrationStatus: React.FC<SlackIntegrationStatusProps> = ({
               <div className="small text-muted mb-1">Selected Channels</div>
               <div className="fw-semibold">{channelCount} channels</div>
             </div>
+          </div>
+        )}
+        
+        {lastChecked && (
+          <div className="mt-2">
+            <small className="text-muted">
+              Last checked: {lastChecked.toLocaleTimeString()}
+            </small>
           </div>
         )}
 
