@@ -39,6 +39,35 @@ const SlackConnectCard: React.FC = () => {
     }
   };
 
+  const handleDebugCheck = async () => {
+    console.log('🔍 Manual Slack auth status check...');
+    try {
+      const status = await apiClient.getSlackAuthStatus(tenantId);
+      console.log('📊 Manual Slack Auth Status:', status);
+    } catch (err) {
+      console.error('❌ Manual Slack Auth Status Error:', err);
+    }
+  };
+
+  const handleManualRefresh = async () => {
+    console.log('🔄 Manual refresh of Slack auth status...');
+    await checkAuth();
+  };
+
+  const handleCleanupDuplicates = async () => {
+    console.log('🧹 Cleaning up duplicate Slack integrations...');
+    try {
+      const result = await apiClient.cleanupDuplicateSlackIntegrations(tenantId);
+      console.log('✅ Cleanup result:', result);
+      if (result.success) {
+        // Refresh auth status after cleanup
+        await checkAuth();
+      }
+    } catch (err) {
+      console.error('❌ Cleanup failed:', err);
+    }
+  };
+
   // Show loading only on initial load, not during polling
   if (loading && !polling) {
     return (
@@ -65,6 +94,48 @@ const SlackConnectCard: React.FC = () => {
           <button className="btn btn-primary" onClick={checkAuth}>
             Retry
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show cleanup option if there are duplicate integrations
+  if (authStatus?.message?.includes('Multiple Slack integrations found')) {
+    return (
+      <div className="card mt-4">
+        <div className="card-header bg-warning-subtle">
+          <div className="d-flex justify-content-between align-items-center">
+            <h3 className="mb-0">Slack Integration</h3>
+            <span className="text-warning fw-bold">⚠️ Duplicate Integrations</span>
+          </div>
+        </div>
+        <div className="card-body">
+          <div className="alert alert-warning">
+            <strong>Multiple Slack integrations detected!</strong><br />
+            {authStatus.message}
+          </div>
+          <div className="d-flex justify-content-between align-items-center">
+            <div>
+              <p className="text-muted mb-0">
+                Click the button below to clean up duplicate integrations and restore your connection.
+              </p>
+            </div>
+            <div>
+              <button 
+                className="btn btn-warning me-2" 
+                onClick={handleCleanupDuplicates}
+                disabled={loading}
+              >
+                {loading ? 'Cleaning...' : '🧹 Clean Up Duplicates'}
+              </button>
+              <button 
+                className="btn btn-outline-secondary btn-sm" 
+                onClick={handleDebugCheck}
+              >
+                Debug Status
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -105,11 +176,23 @@ const SlackConnectCard: React.FC = () => {
             </div>
             <div className="col-md-4 text-end">
               <button 
-                className="btn btn-outline-primary btn-sm" 
+                className="btn btn-outline-primary btn-sm me-2" 
                 onClick={handleRefresh} 
                 disabled={connecting || loading}
               >
                 Refresh Token
+              </button>
+              <button 
+                className="btn btn-outline-secondary btn-sm me-2" 
+                onClick={handleDebugCheck}
+              >
+                Debug Status
+              </button>
+              <button 
+                className="btn btn-outline-info btn-sm" 
+                onClick={handleManualRefresh}
+              >
+                Refresh Status
               </button>
             </div>
           </div>
@@ -178,6 +261,18 @@ const SlackConnectCard: React.FC = () => {
             )}
           </div>
           <div className="col-md-4 text-end">
+            <button 
+              className="btn btn-outline-secondary btn-sm me-2" 
+              onClick={handleDebugCheck}
+            >
+              Debug Status
+            </button>
+            <button 
+              className="btn btn-outline-info btn-sm me-2" 
+              onClick={handleManualRefresh}
+            >
+              Refresh Status
+            </button>
             <button 
               className="btn btn-primary" 
               onClick={handleConnect} 
