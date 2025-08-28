@@ -33,10 +33,15 @@ const SlackIntegrationStatus: React.FC<SlackIntegrationStatusProps> = ({
       setStatus('loading');
       setError(null);
       
+      console.log('🔍 Checking Slack auth status for tenant:', tenantId);
+      
       // Use the auth status endpoint to check if Slack is connected
       const authStatus = await apiClient.getSlackAuthStatus(tenantId);
       
+      console.log('📊 Slack Auth Status Response:', authStatus);
+      
       if (authStatus.authenticated) {
+        console.log('✅ Slack is authenticated, setting status to connected');
         setStatus('connected');
         // Try to get channel count if authenticated
         try {
@@ -49,20 +54,41 @@ const SlackIntegrationStatus: React.FC<SlackIntegrationStatusProps> = ({
           console.warn('Could not fetch channel count:', channelErr);
         }
       } else if (authStatus.needs_auth) {
+        console.log('⚠️ Slack needs auth, setting status to not_found');
         setStatus('not_found');
       } else {
+        console.log('❌ Slack not authenticated, setting status to error');
         setStatus('error');
         setError(authStatus.message || 'Slack not properly authenticated');
       }
       
       setLastChecked(new Date());
     } catch (err: any) {
-      if (err?.message?.includes('404') || err?.message?.includes('not found')) {
-        setStatus('not_found');
-      } else {
-        setStatus('error');
-        setError(err?.message || 'Failed to check Slack connection');
+      console.error('🚨 Error checking Slack status:', err);
+      
+      // Fallback: try to check connection via channels endpoint
+      try {
+        console.log('🔄 Trying fallback connection check via channels endpoint...');
+        const channelsResponse = await apiClient.listSlackChannels(tenantId);
+        if (channelsResponse.success) {
+          console.log('✅ Fallback successful - Slack is connected via channels endpoint');
+          setStatus('connected');
+          if (channelsResponse.data) {
+            setChannelCount(channelsResponse.data.filter(c => c.selected).length);
+          }
+        } else {
+          setStatus('not_found');
+        }
+      } catch (fallbackErr: any) {
+        console.error('🚨 Fallback also failed:', fallbackErr);
+        if (err?.message?.includes('404') || err?.message?.includes('not found')) {
+          setStatus('not_found');
+        } else {
+          setStatus('error');
+          setError(err?.message || 'Failed to check Slack connection');
+        }
       }
+      
       setLastChecked(new Date());
     }
   };
