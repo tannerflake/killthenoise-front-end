@@ -29,9 +29,15 @@ export const useSlackAuth = ({ tenantId }: UseSlackAuthProps): UseSlackAuthRetur
         setLoading(true);
       }
       setError(null);
+      
+      console.log('🔍 useSlackAuth: Checking auth status for tenant:', tenantId);
       const status = await apiClient.getSlackAuthStatus(tenantId);
+      console.log('📊 useSlackAuth: Auth status response:', status);
+      
       setAuthStatus(status);
+      console.log('✅ useSlackAuth: Status updated, authenticated:', status.authenticated);
     } catch (err) {
+      console.error('🚨 useSlackAuth: Error checking auth status:', err);
       setError(err instanceof Error ? err.message : 'Failed to check authentication status');
     } finally {
       if (!isPolling) {
@@ -83,6 +89,7 @@ export const useSlackAuth = ({ tenantId }: UseSlackAuthProps): UseSlackAuthRetur
   };
 
   useEffect(() => {
+    console.log('🔄 useSlackAuth: useEffect triggered, calling checkAuth for tenant:', tenantId);
     checkAuth();
   }, [tenantId]);
 
