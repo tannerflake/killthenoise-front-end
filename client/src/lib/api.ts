@@ -36,9 +36,13 @@ export interface SlackAuthStatus {
 
 export interface SlackAuthUrlResponse {
   success: boolean;
-  authorization_url: string;
-  integration_id: string;
-  tenant_id: string;
+  authorization_url?: string;
+  integration_id?: string;
+  tenant_id?: string;
+  error?: string;
+  message?: string;
+  existing_integration_id?: string;
+  needs_disconnect?: boolean;
 }
 
 export interface SlackRefreshResponse {
@@ -344,6 +348,11 @@ export const apiClient = {
 
   async cleanupDuplicateSlackIntegrations(tenantId: string): Promise<ApiResponse> {
     const response = await api.post<ApiResponse>(`/api/slack/cleanup-duplicates/${tenantId}`);
+    return response.data;
+  },
+
+  async disconnectSlack(tenantId: string): Promise<ApiResponse> {
+    const response = await api.delete<ApiResponse>(`/api/slack/disconnect/${tenantId}`);
     return response.data;
   },
 

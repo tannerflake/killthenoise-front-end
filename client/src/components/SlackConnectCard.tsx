@@ -15,7 +15,7 @@ const SlackConnectCard: React.FC = () => {
       
       if (result.success) {
         // Open OAuth URL in new window
-        window.open(result.authorization_url, '_blank', 'width=600,height=700');
+        const popup = window.open(result.authorization_url, '_blank', 'width=600,height=700');
         
         // Start polling for authentication completion
         startPolling();
@@ -25,6 +25,26 @@ const SlackConnectCard: React.FC = () => {
           stopPolling();
           setConnecting(false);
         }, 300000);
+      } else if (result.needs_disconnect) {
+        // Handle existing integration case
+        const shouldDisconnect = window.confirm(
+          `${result.message}\n\nWould you like to disconnect the existing integration and reconnect?`
+        );
+        
+        if (shouldDisconnect) {
+          try {
+            await apiClient.disconnectSlack(tenantId);
+            // Try connecting again after disconnect
+            await handleConnect();
+          } catch (disconnectErr) {
+            console.error('Failed to disconnect Slack:', disconnectErr);
+            setConnecting(false);
+          }
+        } else {
+          setConnecting(false);
+        }
+      } else {
+        throw new Error(result.message || 'Failed to start Slack authorization');
       }
     } catch (err) {
       console.error('Failed to start OAuth flow:', err);
@@ -65,6 +85,24 @@ const SlackConnectCard: React.FC = () => {
       }
     } catch (err) {
       console.error('❌ Cleanup failed:', err);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    const shouldDisconnect = window.confirm(
+      'Are you sure you want to disconnect Slack? This will remove all Slack integrations for this tenant.'
+    );
+    
+    if (shouldDisconnect) {
+      try {
+        setConnecting(true);
+        await apiClient.disconnectSlack(tenantId);
+        await checkAuth(); // Refresh status
+      } catch (err) {
+        console.error('Failed to disconnect Slack:', err);
+      } finally {
+        setConnecting(false);
+      }
     }
   };
 
@@ -175,6 +213,13 @@ const SlackConnectCard: React.FC = () => {
               </div>
             </div>
             <div className="col-md-4 text-end">
+              <button 
+                className="btn btn-outline-danger btn-sm me-2" 
+                onClick={handleDisconnect}
+                disabled={connecting || loading}
+              >
+                Disconnect
+              </button>
               <button 
                 className="btn btn-outline-primary btn-sm me-2" 
                 onClick={handleRefresh} 
