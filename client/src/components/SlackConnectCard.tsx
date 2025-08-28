@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSlackAuth } from '../hooks/useSlackAuth';
 import { apiClient } from '../lib/api';
 import { useTenant } from '../context/TenantContext';
@@ -8,6 +8,19 @@ const SlackConnectCard: React.FC = () => {
   const { authStatus, loading, polling, error, checkAuth, refreshToken, startPolling, stopPolling } = useSlackAuth({ tenantId });
   const [connecting, setConnecting] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
+
+  // Force reset connecting state if it gets stuck for too long
+  useEffect(() => {
+    if (connecting) {
+      const timeout = setTimeout(() => {
+        console.log('⏰ Connecting timeout: forcing reset after 10 seconds');
+        setConnecting(false);
+        setConnectError('Connection timed out. Please try again.');
+      }, 10000);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [connecting]);
 
   const handleConnect = async () => {
     console.log('🚀 handleConnect called');
@@ -54,7 +67,15 @@ const SlackConnectCard: React.FC = () => {
       console.error('Error response data:', err.response?.data);
       console.error('Error status:', err.response?.status);
       console.log('🔄 Setting connecting to false and error state...');
+      
+      // Force reset connecting state immediately
       setConnecting(false);
+      
+      // Also set a timeout as backup
+      setTimeout(() => {
+        setConnecting(false);
+        console.log('⏰ Backup timeout: forcing connecting to false');
+      }, 100);
       
       // Show user-friendly error message
       const errorMessage = err.response?.data?.detail || err.message || 'Failed to start Slack authorization';
