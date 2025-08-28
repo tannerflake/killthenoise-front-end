@@ -46,8 +46,10 @@ const SlackConnectCard: React.FC = () => {
       } else {
         throw new Error(result.message || 'Failed to start Slack authorization');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to start OAuth flow:', err);
+      console.error('Error response data:', err.response?.data);
+      console.error('Error status:', err.response?.status);
       setConnecting(false);
     }
   };

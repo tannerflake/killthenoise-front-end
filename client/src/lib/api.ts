@@ -332,7 +332,9 @@ export const apiClient = {
 
   // Slack API
   async getSlackAuthUrl(tenantId: string): Promise<SlackAuthUrlResponse> {
+    console.log('🔍 Calling getSlackAuthUrl for tenant:', tenantId);
     const response = await api.get<SlackAuthUrlResponse>(`/api/slack/authorize/${tenantId}`);
+    console.log('📊 getSlackAuthUrl response:', response.data);
     return response.data;
   },
 
