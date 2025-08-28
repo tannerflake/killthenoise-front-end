@@ -115,23 +115,7 @@ const SlackConnectCard: React.FC = () => {
     }
   };
 
-  const handleDisconnect = async () => {
-    const shouldDisconnect = window.confirm(
-      'Are you sure you want to disconnect Slack? This will remove all Slack integrations for this tenant.'
-    );
-    
-    if (shouldDisconnect) {
-      try {
-        setConnecting(true);
-        await apiClient.disconnectSlack(tenantId);
-        await checkAuth(); // Refresh status
-      } catch (err) {
-        console.error('Failed to disconnect Slack:', err);
-      } finally {
-        setConnecting(false);
-      }
-    }
-  };
+
 
   // Show loading only on initial load, not during polling
   if (loading && !polling) {
@@ -242,10 +226,10 @@ const SlackConnectCard: React.FC = () => {
             <div className="col-md-4 text-end">
               <button 
                 className="btn btn-outline-danger btn-sm" 
-                onClick={handleDisconnect}
+                onClick={handleConnect}
                 disabled={connecting || loading}
               >
-                Disconnect
+                Reconnect
               </button>
             </div>
           </div>
@@ -254,41 +238,7 @@ const SlackConnectCard: React.FC = () => {
     );
   }
 
-  // Show expired token case
-  if (authStatus?.message?.includes('Token expired') && !authStatus?.can_refresh) {
-    return (
-      <div className="card mt-4">
-        <div className="card-header bg-danger-subtle">
-          <div className="d-flex justify-content-between align-items-center">
-            <h3>Slack Integration</h3>
-            <span className="text-danger fw-bold">❌ Token Expired</span>
-          </div>
-        </div>
-        <div className="card-body">
-          <div className="alert alert-warning">
-            <strong>Slack connection needs to be renewed.</strong><br />
-            Please disconnect and reconnect to restore the integration.
-          </div>
-          <div className="d-flex justify-content-between align-items-center">
-            <div>
-              <p className="text-muted mb-0">
-                Your Slack connection has expired and needs to be renewed.
-              </p>
-            </div>
-            <div>
-              <button 
-                className="btn btn-danger" 
-                onClick={handleDisconnect}
-                disabled={connecting || loading}
-              >
-                Disconnect & Reconnect
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+
 
   if (authStatus?.can_refresh) {
     return (
