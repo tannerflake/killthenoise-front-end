@@ -7,10 +7,12 @@ const SlackConnectCard: React.FC = () => {
   const { tenantId } = useTenant();
   const { authStatus, loading, polling, error, checkAuth, refreshToken, startPolling, stopPolling } = useSlackAuth({ tenantId });
   const [connecting, setConnecting] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
 
   const handleConnect = async () => {
     try {
       setConnecting(true);
+      setConnectError(null); // Clear any previous errors
       const result = await apiClient.getSlackAuthUrl(tenantId);
       
       if (result.success) {
@@ -51,6 +53,10 @@ const SlackConnectCard: React.FC = () => {
       console.error('Error response data:', err.response?.data);
       console.error('Error status:', err.response?.status);
       setConnecting(false);
+      
+      // Show user-friendly error message
+      const errorMessage = err.response?.data?.detail || err.message || 'Failed to start Slack authorization';
+      setConnectError(errorMessage);
     }
   };
 
@@ -295,6 +301,15 @@ const SlackConnectCard: React.FC = () => {
         </div>
       </div>
       <div className="card-body">
+        {connectError && (
+          <div className="alert alert-danger mb-3">
+            <strong>Connection Error:</strong> {connectError}
+            <br />
+            <small className="text-muted">
+              This appears to be a backend issue. Please contact the backend team.
+            </small>
+          </div>
+        )}
         <div className="row">
           <div className="col-md-8">
             <p className="text-muted mb-0">
