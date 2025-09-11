@@ -23,11 +23,6 @@ const Header: React.FC = () => {
                   Settings
                 </Link>
               </li>
-              <li className="nav-item">
-                <Link to="/hubspot/form" className="nav-link">
-                  Report a Bug
-                </Link>
-              </li>
 
             </ul>
           </nav>
